@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 518 338" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="A lower-triangular attention matrix: each row may attend only to itself and earlier tokens.">
+<text x="118" y="26" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">ATTENDING TO (key position)</text>
+<text x="139.0" y="64" font-size="11" text-anchor="middle" fill="#3b3d42">The</text>
+<text x="181.0" y="64" font-size="11" text-anchor="middle" fill="#3b3d42">cat</text>
+<text x="223.0" y="64" font-size="11" text-anchor="middle" fill="#3b3d42">sat</text>
+<text x="265.0" y="64" font-size="11" text-anchor="middle" fill="#3b3d42">on</text>
+<text x="307.0" y="64" font-size="11" text-anchor="middle" fill="#3b3d42">it</text>
+<text x="106" y="99.0" font-size="11" text-anchor="end" fill="#3b3d42">The</text>
+<rect x="118" y="74" width="39" height="39" rx="4" fill="#274b6d" opacity="0.85"/>
+<rect x="160" y="74" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="179.5" y="98.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<rect x="202" y="74" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="221.5" y="98.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<rect x="244" y="74" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="263.5" y="98.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<rect x="286" y="74" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="305.5" y="98.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<text x="106" y="141.0" font-size="11" text-anchor="end" fill="#3b3d42">cat</text>
+<rect x="118" y="116" width="39" height="39" rx="4" fill="#274b6d" opacity="0.57"/>
+<rect x="160" y="116" width="39" height="39" rx="4" fill="#274b6d" opacity="0.85"/>
+<rect x="202" y="116" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="221.5" y="140.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<rect x="244" y="116" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="263.5" y="140.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<rect x="286" y="116" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="305.5" y="140.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<text x="106" y="183.0" font-size="11" text-anchor="end" fill="#3b3d42">sat</text>
+<rect x="118" y="158" width="39" height="39" rx="4" fill="#274b6d" opacity="0.48"/>
+<rect x="160" y="158" width="39" height="39" rx="4" fill="#274b6d" opacity="0.67"/>
+<rect x="202" y="158" width="39" height="39" rx="4" fill="#274b6d" opacity="0.85"/>
+<rect x="244" y="158" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="263.5" y="182.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<rect x="286" y="158" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="305.5" y="182.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<text x="106" y="225.0" font-size="11" text-anchor="end" fill="#3b3d42">on</text>
+<rect x="118" y="200" width="39" height="39" rx="4" fill="#274b6d" opacity="0.44"/>
+<rect x="160" y="200" width="39" height="39" rx="4" fill="#274b6d" opacity="0.57"/>
+<rect x="202" y="200" width="39" height="39" rx="4" fill="#274b6d" opacity="0.71"/>
+<rect x="244" y="200" width="39" height="39" rx="4" fill="#274b6d" opacity="0.85"/>
+<rect x="286" y="200" width="39" height="39" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="305.5" y="224.5" font-size="13" text-anchor="middle" fill="#cfcdc4">&#215;</text>
+<text x="106" y="267.0" font-size="11" text-anchor="end" fill="#3b3d42">it</text>
+<rect x="118" y="242" width="39" height="39" rx="4" fill="#274b6d" opacity="0.41"/>
+<rect x="160" y="242" width="39" height="39" rx="4" fill="#274b6d" opacity="0.52"/>
+<rect x="202" y="242" width="39" height="39" rx="4" fill="#274b6d" opacity="0.63"/>
+<rect x="244" y="242" width="39" height="39" rx="4" fill="#274b6d" opacity="0.74"/>
+<rect x="286" y="242" width="39" height="39" rx="4" fill="#274b6d" opacity="0.85"/>
+<text x="14" y="179.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1" transform="rotate(-90 14 179.0)" text-anchor="middle">QUERY POSITION</text>
+<rect x="356" y="78" width="16" height="16" rx="4" fill="#274b6d" opacity="0.8"/>
+<text x="380" y="91" font-size="11" fill="#3b3d42">allowed</text>
+<rect x="356" y="106" width="16" height="16" rx="4" fill="#f0efe9" stroke="#e4e3dd"/>
+<text x="380" y="119" font-size="11" fill="#3b3d42">masked to &#8722;&#8734;</text>
+<text x="356" y="152" font-size="10.5" fill="#6a6d73">The future is</text>
+<text x="356" y="166" font-size="10.5" fill="#6a6d73">unreadable, so we</text>
+<text x="356" y="180" font-size="10.5" fill="#6a6d73">can train on every</text>
+<text x="356" y="194" font-size="10.5" fill="#6a6d73">position at once.</text>
+</svg>

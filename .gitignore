@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Build output. The GitHub Actions workflow regenerates this on every push, so
+# it does not belong in version control.
+#
+# If you switch to the no-CI deploy option (Pages serving from the /docs folder
+# of main), DELETE the line below and commit docs/ instead.
+docs/

@@ -1,0 +1,57 @@
+name: Build and deploy the book
+
+# Rebuilds the site from source on every push to main and publishes it to
+# GitHub Pages. The generated `docs/` folder is a build artifact and is NOT
+# committed to the repository; this workflow regenerates it from `toc.py`,
+# `content/`, and `figures/` so what is served always matches source.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Lets you redeploy by hand from the Actions tab.
+
+# Allow the workflow to publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If you push twice quickly, let the newer build win rather than queueing.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install markdown pymdown-extensions pygments matplotlib
+
+      - name: Generate figures
+        run: python figures/make_figures.py
+
+      - name: Build the site
+        run: python build.py
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
