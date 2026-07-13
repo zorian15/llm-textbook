@@ -1,5 +1,8 @@
 # Foundations of Large Language Models
 
+DISCLAIMER: The contents of this book are primarily generated with Claude Opus 4.6+.
+This book primarily serves as a personal resource for learning the basics of LLMs.
+
 A static, bookdown-style textbook on how LLMs are trained, aligned, served, and
 wrapped into products — aimed at an engineer who wants everything needed to ace
 an LLM interview in 2026. It is a folder of linked HTML files generated from
