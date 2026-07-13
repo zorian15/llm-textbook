@@ -18,11 +18,21 @@ Training is nothing more exotic than teaching $p_\theta$ to assign high probabil
 !!! analogy "Analogy"
     Think of a student who has read the entire internet and plays a relentless game of "guess the next word." To get good at the game on *arbitrary* text, they are forced to absorb grammar, facts, arithmetic, code, and the rhythms of argument. The game is trivial; being good at it is not. This leaks in one place: the student never gets to *act* in the world during study, only to predict — which is exactly why Part III exists.
 
+<figure class="wide">
+<img src="assets/figures/autoregression.svg" alt="Context tokens feed a next-token model that outputs a probability distribution over the vocabulary; the sampled token is appended to the context and the process repeats.">
+<figcaption>The whole contract. The model turns the context into a distribution over the next token; you sample one, append it, and run the very same function again. Everything an LLM appears to do is this loop, tightened.</figcaption>
+</figure>
+
 ## Why "large" is the whole story
 
 Nothing about next-token prediction is new; the surprise is what happens at scale. As you increase parameters, data, and compute together, the loss falls along a smooth power law [@kaplan2020], and somewhere along that curve the model stops merely completing text and starts following instructions, doing multi-step arithmetic, and writing working code [@brown2020; @wei2022]. We spend Chapter 9 on the exact shape of these *scaling laws*, because they are the closest thing the field has to a design equation.
 
 The practical consequence: much of LLM engineering is really *systems* engineering. Making a model bigger means splitting it across hundreds of GPUs to train (Chapter 8) and squeezing it back onto a few to serve (Part IV). A great deal of what an LLM engineer does is fight the memory and bandwidth of physical hardware.
+
+<figure>
+<img src="assets/figures/scaling-emergence.svg" alt="A smooth power-law loss curve falling with training compute, with capabilities like grammar, three-digit addition, instruction following, and multi-step code switching on at points along it.">
+<figcaption>Why "large" is the whole story. The loss falls smoothly and predictably as you add scale, yet particular capabilities appear only once thresholds are crossed — which is what makes scaling feel like discovery rather than design.</figcaption>
+</figure>
 
 ## From a text predictor to an assistant
 
@@ -35,6 +45,11 @@ Turning it into ChatGPT- or Claude-like behavior takes *post-training*:
 
 !!! interview "Interview"
     *Why isn't supervised fine-tuning enough — why bother with RLHF?* Because you can *recognize* a good answer more reliably than you can *write* the single best one. Preference methods learn from rankings of outputs the model itself generates, which is a richer and more scalable signal than a fixed set of gold demonstrations.
+
+<figure class="wide">
+<img src="assets/figures/base-vs-assistant.svg" alt="The same prompt continued by a base model as if extending a document, versus answered directly by a post-trained assistant.">
+<figcaption>Same weights, different behavior. A base model continues your prompt the way its training data would; post-training is what teaches it to treat the prompt as a request to be answered.</figcaption>
+</figure>
 
 ## The harness: the product around the weights
 
@@ -64,8 +79,18 @@ Two shifts define the current edge. First, **reasoning models** (Chapter 25) spe
 
 Second, the **open problems** (Chapter 26) remain stubborn: models still hallucinate confidently, we still cannot fully read what a model has learned, and we do not yet have alignment techniques we would trust on systems smarter than us. These are where the interesting research is, and they close the book.
 
+<figure class="wide">
+<img src="assets/figures/test-time-compute.svg" alt="A standard model emits a short answer immediately; a reasoning model first generates a long hidden chain of thought and then answers.">
+<figcaption>The frontier's new axis. A reasoning model spends compute at inference time, working through a long internal chain before it answers — scaling how long it thinks rather than how large it is.</figcaption>
+</figure>
+
 ## A map of the rest
 
 If you want the shortest useful path: read the transformer chapter (4), the scaling-laws chapter (9), and the post-training chapters (10–12) to understand how models are *made*; then the inference and harness parts (IV–V) to understand how they are *shipped*. The appendix on running models locally is a good place to get your hands dirty on your own machine.
+
+<figure class="wide">
+<img src="assets/figures/reading-map.svg" alt="The book's seven parts in reading order, with Parts I through V highlighted as the build-and-ship spine and VI through VII left open.">
+<figcaption>The shape of the book. Parts I–V follow a model from architecture to a shipped product; VI–VII step back to ask how we measure it and where the field is going. Read straight through, or follow the spine and branch out.</figcaption>
+</figure>
 
 Onward to tokens.

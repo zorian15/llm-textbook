@@ -11,6 +11,11 @@ Attention is order-blind: shuffle the tokens and the $QK^\top$ scores shuffle wi
 
 RoPE also concentrates the levers for long context: because position lives in rotation frequencies, stretching the frequency schedule (raising the rotation base, interpolating positions) is how models trained at one context length are extended to much longer ones — a topic that returns with the serving costs of Chapter 15.
 
+<figure class="wide">
+<img src="assets/figures/rope.svg" alt="The same token drawn as a clock face at three positions, its hand rotated further at each later position; the caption notes that the attention score depends on the angle between two hands.">
+<figcaption>Position as rotation. RoPE turns each query and key by an angle set by the token's position, so the score between two tokens depends only on the angle between them — that is, on how far apart they are, never on where each one sits.</figcaption>
+</figure>
+
 ## Normalization: RMSNorm and pre-norm
 
 Two separate upgrades hide under "normalization."
@@ -18,6 +23,11 @@ Two separate upgrades hide under "normalization."
 *Where* it sits: the 2017 transformer normalized *after* each sublayer (post-norm), which at large depth needs a delicate warmup to avoid divergence. Placing the normalization *before* each sublayer (pre-norm) keeps the residual stream itself untouched — an identity path from embedding to output — and gradients flow through deep stacks without drama [@xiong2020]. Every modern LLM is pre-norm; the block in Chapter 4 already showed it.
 
 *What* it computes: LayerNorm [@ba2016] centers activations (subtract the mean) and scales them (divide by the standard deviation). **RMSNorm** [@zhang2019] drops the centering and simply divides by the root-mean-square, with a learned gain. It is cheaper — one fewer reduction over the hidden dimension, and no bias parameters — and models train just as well. When an ablation says the cheap half of an operation was the only half that mattered, the expensive half disappears from the recipe.
+
+<figure class="wide">
+<img src="assets/figures/prenorm.svg" alt="Two columns: post-norm places LayerNorm on the residual stream after the add, breaking it; pre-norm places the norm on the branch, leaving the residual stream an unbroken identity path.">
+<figcaption>Where normalization sits. Moving the norm off the residual stream and onto each sublayer's branch keeps the stream an unbroken identity path from embedding to output, which is what makes very deep stacks train stably.</figcaption>
+</figure>
 
 ## Activations: SwiGLU
 
@@ -32,14 +42,21 @@ There is one bookkeeping consequence you will see in every config: SwiGLU has th
 !!! note "Note"
     Why does gating help? The SwiGLU paper declines to theorize, attributing the result to "divine benevolence" [@shazeer2020]. The honest summary is that it wins ablations consistently and costs nothing at equal parameters — which, in architecture research, is a complete argument.
 
+<figure class="wide">
+<img src="assets/figures/swiglu.svg" alt="An input x is projected two ways; a Swish-activated gate multiplies the other projection elementwise, and the product is projected back down.">
+<figcaption>A gated feed-forward layer. One projection gates the other elementwise, so the layer controls how much of each feature passes rather than merely whether it is positive — multiplicative control that a single one-sided ReLU cannot express.</figcaption>
+</figure>
+
 ## Attention variants: MQA and GQA
 
 At inference time, every past token's keys and values are cached so they are not recomputed per step — the KV cache, whose memory math Chapter 15 and Appendix A work out. In full multi-head attention, *every* head stores its own keys and values, so the cache scales with the head count, and at long context it competes with the weights for memory and bandwidth.
 
 The fix is to share. **Multi-query attention (MQA)** keeps all the query heads but gives them one shared key/value head [@shazeer2019] — a large cache reduction with a measurable quality cost. **Grouped-query attention (GQA)** interpolates: query heads are divided into groups, each group sharing one KV head [@ainslie2023]. With, say, 32 query heads and 8 KV heads, the cache shrinks 4× while quality stays near full multi-head attention. GQA is the current default.
 
-!!! figure "Figure 5.1. Multi-head, grouped-query, and multi-query attention."
-    Three columns of query heads connected to key/value heads: MHA with a KV head per query head, GQA with one KV head per group of four query heads, and MQA with a single shared KV head. The KV cache size shrinks left to right.
+<figure class="wide">
+<img src="assets/figures/attention-sharing.svg" alt="Three layouts of query heads wired to key/value heads: multi-head attention has one KV head per query head, grouped-query attention shares one KV head per group of four query heads, and multi-query attention shares a single KV head.">
+<figcaption>Sharing key/value heads. Full multi-head attention stores a KV head for every query head; GQA shares one across a group and MQA across all of them. Fewer KV heads means a smaller cache — longer context and bigger batches — at a small, controllable quality cost.</figcaption>
+</figure>
 
 !!! interview "Interview"
     *Why do modern models use GQA instead of full multi-head attention?* Because decode is bound by memory, not compute (Chapter 15), and the KV cache is the memory that grows with context and batch size. Sharing KV heads across groups of query heads cuts the cache by the sharing factor — allowing longer contexts and larger batches — at a quality cost small enough that everyone pays it.
@@ -54,6 +71,11 @@ That splits a number you have been treating as one. A "Mixtral 8×7B" has ~47B *
     Storing knowledge is cheap; computing with all of it on every token is not. MoE keeps a large library but only sends each token to the two most relevant shelves.
 
 The costs are real: all experts must fit in memory even though most idle per token, the router must be trained to spread load evenly (an auxiliary loss does this), and training is less stable than dense. Chapter 8's parallelism strategies also grow a new dimension, since experts can live on different devices.
+
+<figure class="wide">
+<img src="assets/figures/moe.svg" alt="A router sends a token to two of six experts, whose edges are highlighted while the other four are dashed; a callout contrasts six experts held in memory with two run per token.">
+<figcaption>Why capacity is cheap but compute is not. A router sends each token to only its top experts, so the parameter count you hold in memory (total) grows far faster than the compute you spend per token (active). That gap is the whole appeal.</figcaption>
+</figure>
 
 ## A tour of a current open model
 
@@ -79,4 +101,9 @@ Read it with this chapter in hand. `num_key_value_heads: 8` against 32 attention
 !!! interview "Interview"
     *An interviewer shows you `num_attention_heads: 64, num_key_value_heads: 8` — what do they want to hear?* That this is grouped-query attention with eight groups, so the KV cache is 8× smaller than full multi-head attention would need; then the why — decode is memory-bandwidth-bound and the cache limits context length and batch size.
 
-The architecture is now current. The next part of the book takes these frozen blueprints and asks how the weights inside them are actually learned.
+The architecture is now current. <figure class="wide">
+<img src="assets/figures/config-tour.svg" alt="A model config with each field linked to a plain-language note: num_key_value_heads to GQA, intermediate_size to SwiGLU width, hidden_act silu to the Swish gate, rms_norm_eps to RMSNorm, rope_theta to the rotary base, and vocab_size to the BPE vocabulary.">
+<figcaption>The chapter, frozen into JSON. Every load-bearing field in a real config is one of the choices from this chapter — GQA, SwiGLU's two-thirds width, RMSNorm, the RoPE base, the vocabulary — which is why the file reads as a summary once you know what to look for.</figcaption>
+</figure>
+
+The next part of the book takes these frozen blueprints and asks how the weights inside them are actually learned.

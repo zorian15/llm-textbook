@@ -26,6 +26,9 @@ The four drafted chapters — `00-preface`, `01-introduction`, `04-transformer`,
   where it leaks (see the "reading a mystery novel" analogy in Chapter 4).
 - **Every chapter should carry its weight in callouts:** at least one Intuition
   box, and Interview boxes for the questions a candidate is actually asked.
+- **Every `##` section carries at least one figure** (see Figures below). This
+  is a floor, not a ceiling — add a second or third whenever the material earns
+  it.
 - **Second person, active voice, present tense.** "The model reads a sequence,"
   not "sequences are read by the model."
 - **Cross-reference by chapter** ("the KV cache, Chapter 15") so the book feels
@@ -149,6 +152,16 @@ sentences in comments ending with a period, assertions over silent fallbacks.
 
 ### Figures
 
+**The rule: every `##` section carries at least one figure.** A section without
+a figure is unfinished. This is a floor, not a quota — a section may have two or
+three when the material earns it (a crucial or complex idea that illustrates
+cleanly and intuitively, or a performance/relationship worth showing). The floor
+is not a license for filler: the book's rule that "no section is filler" applies
+to figures too, so find the *honest* figure for a section rather than decorating
+it. If a concept truly resists illustration, that is a signal the section itself
+may be trying to do too much or too little — reconsider the prose before settling
+for a weak figure. Captions carry an idea, not a label.
+
 Figures are **generated as SVG by `figures/make_figures.py`**, not drawn by hand
 and not committed as binaries. Two kinds:
 
@@ -222,6 +235,8 @@ resources.
 
 - Opens with a paragraph that states the chapter's core idea in plain terms.
 - Every `##` section has a clear job; no section is filler.
+- Every `##` section carries at least one real figure (not a `!!! figure`
+  placeholder), each with an idea-carrying caption.
 - At least one Intuition box and the Interview questions a candidate would face.
 - Analogies name where they leak.
 - Cross-references to related chapters are present and correct.

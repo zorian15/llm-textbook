@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="an annotated model config">
+<text x="24.0" y="30.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">READING A REAL CONFIG (LLAMA-3-CLASS 8B)</text>
+<rect x="28" y="60" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="80" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"num_attention_heads": 32,</text>
+<path d="M 324 75 L 322 75" stroke="#3b3d42" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="75" r="3" fill="#3b3d42"/>
+<text x="338" y="80" font-size="11" fill="#3b3d42" font-weight="600">32 query heads</text>
+<rect x="28" y="98" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="118" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"num_key_value_heads": 8,</text>
+<path d="M 324 113 L 322 113" stroke="#274b6d" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="113" r="3" fill="#274b6d"/>
+<text x="338" y="118" font-size="11" fill="#274b6d" font-weight="600">GQA — 8 KV heads, a 4× smaller cache</text>
+<rect x="28" y="136" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="156" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"intermediate_size": 14336,</text>
+<path d="M 324 151 L 322 151" stroke="#9c6b12" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="151" r="3" fill="#9c6b12"/>
+<text x="338" y="156" font-size="11" fill="#9c6b12" font-weight="600">SwiGLU width ≈ ⅔·4d, not 4d</text>
+<rect x="28" y="174" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="194" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"hidden_act": "silu",</text>
+<path d="M 324 189 L 322 189" stroke="#9c6b12" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="189" r="3" fill="#9c6b12"/>
+<text x="338" y="194" font-size="11" fill="#9c6b12" font-weight="600">the Swish gate of SwiGLU</text>
+<rect x="28" y="212" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="232" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"rms_norm_eps": 1e-5,</text>
+<path d="M 324 227 L 322 227" stroke="#6b4f9c" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="227" r="3" fill="#6b4f9c"/>
+<text x="338" y="232" font-size="11" fill="#6b4f9c" font-weight="600">RMSNorm, not LayerNorm</text>
+<rect x="28" y="250" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="270" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"rope_theta": 500000.0,</text>
+<path d="M 324 265 L 322 265" stroke="#274b6d" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="265" r="3" fill="#274b6d"/>
+<text x="338" y="270" font-size="11" fill="#274b6d" font-weight="600">rotary base, raised for long context</text>
+<rect x="28" y="288" width="290" height="30" rx="5" fill="#faf9f5" stroke="#e4e3dd"/>
+<text x="40" y="308" font-size="12" font-family="'SF Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace" fill="#17181b">"vocab_size": 128256,</text>
+<path d="M 324 303 L 322 303" stroke="#6a6d73" stroke-width="1.2" opacity="0.5"/>
+<circle cx="328" cy="303" r="3" fill="#6a6d73"/>
+<text x="338" y="308" font-size="11" fill="#6a6d73" font-weight="600">a large BPE vocabulary (Ch. 3)</text>
+</svg>

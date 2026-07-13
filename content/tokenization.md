@@ -13,6 +13,11 @@ Subword tokenization is the negotiated middle: a vocabulary of tens of thousands
 !!! intuition "Intuition"
     Tokenization is compression with a fixed dictionary: frequent strings earn a short code (one token), rare strings get spelled out from pieces. Frequency in the training corpus decides who earns a short code.
 
+<figure>
+<img src="assets/figures/tokenizer-tradeoff.svg" alt="A curve of tokens per passage against vocabulary size on a log scale, falling steeply then flattening, with a highlighted subword sweet spot and the character and word regimes marked at the extremes.">
+<figcaption>The knob is vocabulary size. Characters give a tiny vocabulary but long sequences; whole words give short sequences but a huge vocabulary and out-of-vocabulary misses. Subword tokenizers sit in the sweet spot where each extra token stops paying for itself.</figcaption>
+</figure>
+
 ## Byte-pair encoding
 
 The dominant algorithm, **byte-pair encoding (BPE)**, was born as a compression trick [@gage1994] and adapted for translation models [@sennrich2016]. Building the vocabulary is greedy and simple: start from single characters, count adjacent pairs across the corpus, merge the most frequent pair into a new token, and repeat until you reach the target vocabulary size.
@@ -31,6 +36,11 @@ The merges are the tokenizer. To tokenize new text at inference time, you replay
 !!! analogy "Analogy"
     A tokenizer is a stenographer's shorthand: the phrases the stenographer hears every day get a single stroke, and anything unusual is spelled out sign by sign. The analogy leaks at readback: a stenographer can still see the letters inside a stroke, but the model cannot — a token is an opaque integer, and whatever characters it "contains" are invisible unless the model memorized them during training.
 
+<figure>
+<img src="assets/figures/bpe-merges.svg" alt="A merge tree for the word lowest: l and o merge into lo, then lo and w into low, while e, s, and t remain single characters; the resulting tokens are low, e, s, t.">
+<figcaption>Replaying the merges. A word's tokens are the roots of its merge tree: pairs that were frequent enough in training fuse into a single token (low), and whatever never earned a merge stays a lone character (e, s, t).</figcaption>
+</figure>
+
 ## Byte-level BPE and friends
 
 Production tokenizers are variations on this theme:
@@ -44,6 +54,11 @@ The differences matter less than the shared shape: a current open model ships a 
 
 !!! warning "Common trap"
     The tokenizer is part of the model. Feed a model token ids produced by a different tokenizer and you get confident garbage, not an error — the integers all "mean" something else. Swapping or extending a vocabulary after pretraining is possible but requires retraining the embeddings involved.
+
+<figure>
+<img src="assets/figures/byte-fallback.svg" alt="A frequent word maps to one token, while a rare emoji glyph decomposes into its four UTF-8 byte tokens.">
+<figcaption>Why byte-level tokenizers never see an unknown word. Falling back to the 256 possible bytes means any string — any language, any emoji — is representable, so there is no unknown token. The price is that rare characters cost several tokens each.</figcaption>
+</figure>
 
 ## Consequences of tokenization
 
@@ -61,5 +76,10 @@ A frozen, frequency-based view of text explains a family of famous quirks:
     *You double the tokenizer vocabulary. What changes?* Sequences get shorter (cheaper attention, more effective context), but the embedding and output matrices grow, the softmax over the vocabulary costs more, and the added tokens are the rarest ones — each trained on fewer examples. Somewhere in the tens-to-hundreds of thousands the tradeoff stops paying; that is why vocabularies cluster there.
 
 One economic point to carry forward: **the token is the billing unit**. API prices, context limits, and the serving throughput of Part IV are all denominated in tokens, so a tokenizer that spends 30% more tokens on your traffic is a 30% cost increase with no quality upside. When Chapter 15 measures tokens per second, remember that how much *text* a token buys was decided here.
+
+<figure>
+<img src="assets/figures/language-tax.svg" alt="A horizontal bar chart of token counts for the same sentence across languages: English is the shortest baseline, and Spanish, German, Hindi, Thai, and Burmese each take progressively more tokens.">
+<figcaption>The non-English tax, made concrete. A vocabulary learned on English spends its short codes on English, so the same sentence can cost several times more tokens in another language — a direct hit to cost, context, and often quality, all decided before the model runs.</figcaption>
+</figure>
 
 With text turned into integers, we can now build the machine that reads them.

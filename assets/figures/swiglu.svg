@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 260" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="the SwiGLU gated feed-forward layer">
+<text x="24.0" y="30.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">A GATED FEED-FORWARD LAYER</text>
+<rect x="30.0" y="100.0" width="44.0" height="34.0" rx="6" fill="#274b6d" stroke="none"/>
+<text x="52.0" y="121.2" font-size="12" font-weight="700" text-anchor="middle" fill="#fff">x</text>
+<path d="M 78 112 L 150 74" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#s1)"/>
+<path d="M 78 122 L 150 160" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#s1)"/>
+<rect x="152.0" y="58.0" width="118.0" height="34.0" rx="6" fill="#eaf0f6" stroke="#274b6d"/>
+<text x="211.0" y="78.8" font-size="11" font-weight="400" text-anchor="middle" fill="#274b6d">Swish(x·W₁)</text>
+<rect x="152.0" y="146.0" width="118.0" height="34.0" rx="6" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="211.0" y="166.8" font-size="11" font-weight="400" text-anchor="middle" fill="#17181b">x·W₂</text>
+<text x="211" y="50" font-size="9.5" text-anchor="middle" fill="#6a6d73">the gate</text>
+<text x="211" y="198" font-size="9.5" text-anchor="middle" fill="#6a6d73">the value</text>
+<circle cx="320" cy="119" r="16" fill="#ffffff" stroke="#9c6b12" stroke-width="2"/>
+<text x="320" y="124" font-size="16" text-anchor="middle" fill="#9c6b12">×</text>
+<path d="M 270 75 C 296 90, 300 104, 306 112" fill="none" stroke="#274b6d" stroke-width="1.6" marker-end="url(#s2)"/>
+<path d="M 270 163 C 296 148, 300 134, 306 126" fill="none" stroke="#cfcdc4" stroke-width="1.6" marker-end="url(#s1)"/>
+<path d="M 336 119 L 420 119" stroke="#cfcdc4" stroke-width="1.6" marker-end="url(#s1)"/>
+<rect x="422.0" y="102.0" width="96.0" height="34.0" rx="6" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="470.0" y="122.8" font-size="11" font-weight="700" text-anchor="middle" fill="#17181b">down·W₃</text>
+<path d="M 518 119 L 560 119" stroke="#cfcdc4" stroke-width="1.6" marker-end="url(#s1)"/>
+<rect x="562.0" y="102.0" width="40.0" height="34.0" rx="6" fill="#ffffff" stroke="none"/>
+<text x="582.0" y="124.6" font-size="16" font-weight="400" text-anchor="middle" fill="#274b6d">→</text>
+<text x="310.0" y="248" font-size="10.5" text-anchor="middle" fill="#6a6d73" font-style="italic">The gate scales each feature of the value — multiplicative control a single ReLU cannot give.</text>
+<defs><marker id="s1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#cfcdc4"/></marker></defs>
+<defs><marker id="s2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#274b6d"/></marker></defs>
+</svg>

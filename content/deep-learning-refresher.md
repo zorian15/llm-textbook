@@ -9,6 +9,11 @@ A useful geometric picture is the *manifold view*. Raw inputs are points tangled
 !!! intuition "Intuition"
     A deep network is not one clever function; it is a pipeline of small re-descriptions, each making the next layer's job slightly easier. "Depth" is how many times the input gets re-described.
 
+<figure>
+<img src="assets/figures/manifold.svg" alt="Two interleaved spirals in the input space become two separated clusters divided by a straight line in the last-layer representation.">
+<figcaption>What depth buys you. Classes that no straight line can separate in the input become trivially separable after the network's layers untangle them — prediction is easy geometry at the top because the layers below did the unfolding.</figcaption>
+</figure>
+
 ## The training loop
 
 Every model in this book — from a toy MLP to a frontier LLM — is trained by the same five lines:
@@ -27,6 +32,11 @@ The only non-obvious part is `loss.backward()`. Backpropagation [@rumelhart1986]
 !!! analogy "Analogy"
     Backprop is blame assignment on an assembly line. A defect is found at final inspection (the loss), and a memo travels backwards station by station, telling each worker how much their step contributed and in which direction to adjust. The analogy leaks in one way: on a real assembly line workers adjust one at a time, while gradient descent adjusts *every* station simultaneously — which is why each step must be small, or the workers invalidate each other's corrections.
 
+<figure class="wide">
+<img src="assets/figures/training-loop.svg" alt="A forward pass from batch to model to loss, with a dashed backward pass carrying gradients from the loss back to update the parameters.">
+<figcaption>The whole engine. The forward pass turns inputs into a loss; the backward pass sends a gradient back to every parameter; the optimizer nudges each one downhill. A trillion-token run is just this loop, repeated.</figcaption>
+</figure>
+
 ## Optimizers and learning rates
 
 Plain stochastic gradient descent takes the gradient of the current batch and steps against it. Two refinements matter, and they are the two knobs worth understanding:
@@ -41,6 +51,11 @@ The learning rate itself remains the single most important hyperparameter in dee
 !!! interview "Interview"
     *Why is Adam(W) used for transformers instead of plain SGD?* Because gradient magnitudes in a transformer vary enormously across parameters — embedding rows for rare tokens see gradients rarely, while LayerNorm gains see them constantly. Adam's per-parameter normalization equalizes these scales so one learning rate serves all of them; with plain SGD, transformers train poorly or need impractical per-layer tuning.
 
+<figure>
+<img src="assets/figures/lr-curves.svg" alt="Loss over training steps for three learning rates: a well-tuned rate converges smoothly, too-low barely moves, and too-high wobbles then diverges off the chart.">
+<figcaption>Why the learning rate dominates. Set it too high and the loss diverges; too low and you crawl. Every other knob in an optimizer exists to make one global learning rate workable across millions of very different parameters.</figcaption>
+</figure>
+
 ## Regularization and generalization
 
 The classical story says a model with too many parameters will memorize its training set and fail on new data, so you constrain it: **weight decay** shrinks weights toward zero, and **dropout** [@srivastava2014] randomly silences activations during training so no unit can depend too much on another.
@@ -49,6 +64,11 @@ LLMs complicate the classical story twice. First, the puzzle: modern networks ar
 
 !!! intuition "Intuition"
     Overfitting is a symptom of revisiting the same data with too much capacity. Pretraining starves it from the data side: with trillions of tokens seen once, the model has no choice but to learn patterns, because memorization has nothing to grab onto twice.
+
+<figure>
+<img src="assets/figures/generalization.svg" alt="A grouped bar chart: on real labels the network reaches 100 percent train and 91 percent test accuracy; on random labels it still reaches 100 percent train but only chance-level test accuracy.">
+<figcaption>The generalization puzzle. The same overparameterized network can memorize completely random labels, yet on real data it generalizes. Capacity alone does not decide generalization — structure in the data and what the optimizer finds first matter more.</figcaption>
+</figure>
 
 ## Numerical precision
 
@@ -67,8 +87,10 @@ fp16's narrow range is the problem: gradients in a large model span many orders 
 !!! interview "Interview"
     *Why did bf16 beat fp16 for training?* Because training tolerates noise but not clipped range. bf16 keeps float32's 8-bit exponent, so nothing overflows or underflows and no loss scaling is needed; the precision it gives up disappears into gradient noise the run already has. fp16 spends its bits the other way and buys a failure mode instead.
 
-!!! figure "Figure 2.1. Where the bits go: float32, float16, and bfloat16."
-    Three horizontal bit-layout bars showing sign, exponent, and mantissa fields for each format, aligned so the reader sees that bfloat16's exponent matches float32's while its mantissa is the shortest of the three.
+<figure>
+<img src="assets/figures/precision.svg" alt="Bit layouts of float32, float16, and bfloat16 drawn to a common scale, showing that bfloat16's 8-bit exponent matches float32's while its mantissa is the shortest of the three.">
+<figcaption>Where the bits go. bfloat16 keeps float32's full 8-bit exponent — so it has the same dynamic range and nothing overflows — and pays for it out of the mantissa. That trade wins because training tolerates low precision but not clipped range.</figcaption>
+</figure>
 
 Precision returns in Chapter 16 from the other side: at inference time, weights are static and the noise argument changes, which is why *quantization* can push below 8 bits per weight when training cannot.
 

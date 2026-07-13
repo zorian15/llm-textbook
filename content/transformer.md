@@ -9,6 +9,11 @@ Attention removes the bottleneck. Instead of forcing everything through a single
 !!! analogy "Analogy"
     Reading a mystery novel, you hit the word "she" and instantly glance back to whichever earlier name it refers to — maybe twenty pages ago, maybe one sentence. You are not replaying every page; you jump straight to the relevant spot. Attention is that glance, computed for every word at once. It leaks in that the model has no true memory across separate calls — each glance only reaches within the current context window.
 
+<figure class="wide">
+<img src="assets/figures/rnn-vs-attention.svg" alt="Top: an RNN relays a hidden state token by token, so the first token's signal must survive every step. Bottom: attention lets the last token read every earlier token directly.">
+<figcaption>What attention fixes. An RNN funnels the whole past through one evolving state, so distant information fades and steps must run in sequence. Attention lets every token read any other directly, in parallel — no bottleneck, and nothing to relay.</figcaption>
+</figure>
+
 ## Queries, keys, and values
 
 Each token's vector is projected into three roles. For a token embedding $x_i$:
@@ -45,6 +50,11 @@ One attention operation blends everything into a single relevance signal. That i
 
 If the model dimension is $d$ and you use $h$ heads, each head works in dimension $d/h$, so multi-head attention costs about the same as single-head — you are partitioning the budget, not enlarging it.
 
+<figure>
+<img src="assets/figures/multi-head.svg" alt="The same sentence read by three attention heads: a syntax head links the verb to its subject, a coreference head links the pronoun to its antecedent, and a position head links each token to the one before it.">
+<figcaption>What multiple heads are for. Each head runs its own lookup in its own subspace, so different heads can track different relationships in the same sentence at once — syntax, coreference, position — instead of blending them into one muddy signal.</figcaption>
+</figure>
+
 ## Causal masking
 
 An LLM must predict the next token from *past* tokens only; letting position $i$ attend to position $i+1$ during training would leak the answer. The fix is a **causal mask**: before the softmax, set every score for a future position to $-\infty$ so it receives zero weight.
@@ -78,6 +88,11 @@ Three pieces are doing quiet but essential work:
 !!! interview "Interview"
     *Where are a transformer's parameters?* Roughly two-thirds sit in the FFNs and one-third in the attention projections (for typical shapes). This is why mixture-of-experts models (Chapter 5) target the FFN when they want to add capacity cheaply — they swap the single FFN for many, activating only a few per token.
 
+<figure class="wide">
+<img src="assets/figures/transformer-block.svg" alt="A pre-norm block: a residual stream runs straight through, with two branches that each normalize, apply a sublayer (attention, then the feed-forward network), and add the result back.">
+<figcaption>One block, drawn out. Each sublayer reads a normalized copy of the residual stream and adds its result back, never overwriting it. Keeping that identity path unbroken is what lets gradients survive a stack dozens of blocks deep.</figcaption>
+</figure>
+
 ## The full stack
 
 A decoder-only transformer is then just:
@@ -88,5 +103,10 @@ A decoder-only transformer is then just:
 
 !!! intuition "Intuition"
     The whole network is a tall stack of the same move: *mix across positions with attention, then refine each position with an FFN, over and over.* Depth lets early layers handle surface patterns and later layers assemble them into meaning.
+
+<figure>
+<img src="assets/figures/decoder-stack.svg" alt="The decoder-only stack from bottom to top: token embeddings, a transformer block repeated L times, a final norm and unembed, softmax, and the resulting next-token distribution.">
+<figcaption>The whole model in one column. Embed the tokens, run the same block L times, then project the top vector to a score for every vocabulary token and softmax it. The stack is one move — mix, then refine — repeated with depth.</figcaption>
+</figure>
 
 That is the architecture every chapter after this one takes for granted. Chapter 5 shows how today's models tweak each component — positions, normalization, activations, and attention itself — for stability and efficiency at scale.
