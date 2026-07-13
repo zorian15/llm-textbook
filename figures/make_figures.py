@@ -204,7 +204,7 @@ def fig_lifecycle() -> Path:
     )
 
     parts.append("</svg>")
-    return write_svg("01-lifecycle.svg", "\n".join(parts))
+    return write_svg("lifecycle.svg", "\n".join(parts))
 
 
 # ---------------------------------------------------------------------------
@@ -321,7 +321,7 @@ def fig_attention_lookup() -> Path:
     )
 
     parts.append("</svg>")
-    return write_svg("04-attention-lookup.svg", "\n".join(parts))
+    return write_svg("attention-lookup.svg", "\n".join(parts))
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +422,7 @@ def fig_causal_mask() -> Path:
     )
 
     parts.append("</svg>")
-    return write_svg("04-causal-mask.svg", "\n".join(parts))
+    return write_svg("causal-mask.svg", "\n".join(parts))
 
 
 # ---------------------------------------------------------------------------
@@ -494,7 +494,7 @@ def fig_capacity() -> Path:
     ax.set_axisbelow(True)
     ax.legend(title="precision", loc="upper left", title_fontsize=8)
 
-    return save_plot(fig, "A-capacity.svg")
+    return save_plot(fig, "capacity.svg")
 
 
 # ---------------------------------------------------------------------------
@@ -563,7 +563,7 @@ def fig_bandwidth() -> Path:
         legend is not None
     ), "The legend should exist so the bandwidth curves are labelled."
 
-    return save_plot(fig, "A-bandwidth.svg")
+    return save_plot(fig, "bandwidth.svg")
 
 
 FIGURES = (

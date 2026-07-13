@@ -28,12 +28,33 @@ OUTPUT_DIR = ROOT / "docs"
 BOOK_TITLE = "Foundations of Large Language Models"
 BOOK_SUBTITLE = "Training, serving, and shipping LLMs — everything for a 2026 engineering interview."
 
+# ---------------------------------------------------------------------------
+# Integration with a personal site. Everything needed to fold this book into a
+# wider site lives here; today the book is deliberately standalone, so the
+# optional fields are empty and nothing extra is rendered.
+# ---------------------------------------------------------------------------
+
+# Set to your site to add a "back to <SITE_NAME>" link at the top of the
+# sidebar. Leave both empty to keep the book standalone (no link is rendered).
+SITE_NAME = ""
+SITE_URL = ""
+
+# The book's canonical address, e.g. "https://zorian15.github.io/llm-textbook".
+# Set this to emit canonical and Open Graph tags so shared links preview nicely.
+# Leave empty while the address is not settled.
+CANONICAL_BASE = ""
+
+# While True, every page asks search engines not to index it. The book stays
+# reachable by URL; it just will not show up in search results. Flip to False
+# when the draft is ready to be found.
+DRAFT = True
+
 # MathJax is loaded from a CDN, so equations require an internet connection to
 # render. Everything else (fonts, layout, navigation) works fully offline.
 # Shared <head> markup for every page. `viewport-fit=cover` and the status-bar
 # tag make the book behave when saved to an iPhone home screen; `theme-color`
 # tints Safari's chrome to match the paper background.
-HEAD_META = """\
+HEAD_META_BASE = """\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f3ee">
@@ -43,6 +64,37 @@ HEAD_META = """\
 <meta name="apple-mobile-web-app-title" content="LLM Book">
 <meta name="description" content="A textbook on how large language models are trained, aligned, served, and shipped.">
 """
+
+
+def head_meta(page_title: str, page_file: str) -> str:
+    """Return the <head> metadata for one page.
+
+    Emits the shared tags always, a `noindex` directive while `DRAFT` is True,
+    and canonical plus Open Graph tags once `CANONICAL_BASE` is set. Keeping
+    this in one function means the landing page and the chapters can never drift
+    apart.
+    """
+    tags = [HEAD_META_BASE]
+
+    if DRAFT:
+        tags.append('<meta name="robots" content="noindex, nofollow">\n')
+
+    if CANONICAL_BASE:
+        base = CANONICAL_BASE.rstrip("/")
+        url = f"{base}/{page_file}"
+        tags.append(f'<link rel="canonical" href="{url}">\n')
+        tags.append('<meta property="og:type" content="article">\n')
+        tags.append(f'<meta property="og:title" content="{html.escape(page_title)}">\n')
+        tags.append(
+            f'<meta property="og:description" content="{html.escape(BOOK_SUBTITLE)}">\n'
+        )
+        tags.append(f'<meta property="og:url" content="{url}">\n')
+        tags.append(
+            f'<meta property="og:site_name" content="{html.escape(BOOK_TITLE)}">\n'
+        )
+
+    return "".join(tags)
+
 
 MATHJAX_HEAD = """\
 <script>
@@ -232,10 +284,20 @@ def render_body(
 
 def sidebar_html(active_slug: str) -> str:
     """Build the sidebar table of contents, marking the active page."""
-    parts = [
+    parts: list[str] = []
+
+    # A way home, rendered only once the book is part of a wider site.
+    if SITE_URL:
+        assert SITE_NAME, "SITE_URL is set but SITE_NAME is empty; set both or neither."
+        parts.append(
+            f'<a class="site-backlink" href="{SITE_URL}">&#8592; '
+            f"{html.escape(SITE_NAME)}</a>"
+        )
+
+    parts.append(
         '<a class="book-brand" href="index.html">Foundations of<br>Large Language Models'
         f"<span>{html.escape(BOOK_SUBTITLE)}</span></a>"
-    ]
+    )
 
     def link(chapter: toc.Chapter) -> str:
         active = " active" if chapter.slug == active_slug else ""
@@ -343,7 +405,7 @@ def page_html(
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-{HEAD_META}<title>{html.escape(chapter.title)} · {html.escape(BOOK_TITLE)}</title>
+{head_meta(chapter.title, f'{chapter.slug}.html')}<title>{html.escape(chapter.title)} · {html.escape(BOOK_TITLE)}</title>
 <link rel="stylesheet" href="assets/style.css">
 {MATHJAX_HEAD}</head>
 <body>
@@ -404,7 +466,7 @@ def landing_html() -> str:
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-{HEAD_META}<title>{html.escape(BOOK_TITLE)}</title>
+{head_meta(BOOK_TITLE, 'index.html')}<title>{html.escape(BOOK_TITLE)}</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -452,6 +514,11 @@ def build() -> None:
     # underscore and can silently drop assets. This opts out and serves the
     # folder verbatim. It is harmless when serving locally.
     (OUTPUT_DIR / ".nojekyll").write_text("", encoding="utf-8")
+
+    # Keep robots.txt consistent with the DRAFT flag, so a draft stays out of
+    # search results even if something links to it.
+    robots = "User-agent: *\nDisallow: /\n" if DRAFT else "User-agent: *\nAllow: /\n"
+    (OUTPUT_DIR / "robots.txt").write_text(robots, encoding="utf-8")
 
     drafted = sum(1 for c in pages if (CONTENT_DIR / f"{c.slug}.md").exists())
     print(f"Built {len(pages) + 1} pages into {OUTPUT_DIR.relative_to(ROOT)}/")

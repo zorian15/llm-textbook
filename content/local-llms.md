@@ -27,7 +27,7 @@ The bytes-per-param depends on the numeric precision you load the model in:
     To first order, a model's footprint is just its parameter count times how many bytes you spend per weight. Quantization (Chapter 16) is the lever: dropping from 16-bit to 4-bit shrinks the model roughly 4×, which is what turns a 70B model from "needs a server" into "fits on a laptop with room to spare."
 
 <figure class="wide">
-<img src="assets/figures/A-capacity.svg" alt="A log-scale bar chart of weight memory for 8B, 32B, 70B and 405B models at bf16, int8 and 4-bit precision, with dashed lines marking 24 GB, 128 GB and 512 GB machine capacities.">
+<img src="assets/figures/capacity.svg" alt="A log-scale bar chart of weight memory for 8B, 32B, 70B and 405B models at bf16, int8 and 4-bit precision, with dashed lines marking 24 GB, 128 GB and 512 GB machine capacities.">
 <figcaption>Whether a model fits. Read across a dashed capacity line to see what a given machine can hold: a 24 GB discrete GPU tops out around a 32B model at 4-bit, while 128 GB of unified memory swallows a 70B model at 4-bit with room for the KV cache. Note the log scale — each precision step down is a 2× cut, and those compound.</figcaption>
 </figure>
 
@@ -57,7 +57,7 @@ $$\frac{400 \text{ GB/s}}{35 \text{ GB}} \approx 11 \text{ tokens/sec (theoretic
 Real throughput is perhaps 50–70% of that ceiling after overheads, so call it 6–8 tokens/sec — readable, roughly reading speed, but not instant. Halve the model with more aggressive quantization and you roughly double the rate.
 
 <figure class="wide">
-<img src="assets/figures/A-bandwidth.svg" alt="Curves of tokens per second against resident model size for 200, 400 and 800 GB/s of memory bandwidth, all falling steeply as the model grows; a marked point shows a 35 GB model on 400 GB/s reaching about 7 tokens per second.">
+<img src="assets/figures/bandwidth.svg" alt="Curves of tokens per second against resident model size for 200, 400 and 800 GB/s of memory bandwidth, all falling steeply as the model grows; a marked point shows a 35 GB model on 400 GB/s reaching about 7 tokens per second.">
 <figcaption>Why quantization makes a model <em>faster</em>, not just smaller. Generation speed falls as 1/(model size), because every token requires streaming every weight out of memory once. Moving left along a curve — by quantizing — buys speed, and moving to a higher-bandwidth curve buys speed. Adding FLOPs buys you nothing here.</figcaption>
 </figure>
 

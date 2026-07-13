@@ -1,8 +1,5 @@
 # Foundations of Large Language Models
 
-DISCLAIMER: The contents of this book are primarily generated with Claude Opus 4.6+.
-This book primarily serves as a personal resource for learning the basics of LLMs.
-
 A static, bookdown-style textbook on how LLMs are trained, aligned, served, and
 wrapped into products — aimed at an engineer who wants everything needed to ace
 an LLM interview in 2026. It is a folder of linked HTML files generated from
@@ -47,3 +44,9 @@ and publishes the book automatically. See `DEPLOY.md` for the two-minute setup.
 
 Reads well on a phone: the contents collapse into a slide-in drawer, and Safari's
 **Add to Home Screen** gives it a standalone icon.
+
+## Draft status
+
+The book is currently standalone and marked `DRAFT = True` in `build.py`, so it
+carries `noindex` and is not crawled. See `CLAUDE.md` for the config block that
+links it into a wider site when the time comes.

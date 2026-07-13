@@ -32,7 +32,7 @@ The $QK^\top$ term is an $n \times n$ matrix of every-token-against-every-token 
     *Why divide by $\sqrt{d_k}$?* For large head dimension $d_k$, dot products have variance that grows with $d_k$, pushing softmax into saturated regions where gradients vanish. Scaling by $\sqrt{d_k}$ keeps the scores' variance near 1 so the softmax stays in a responsive range. Forgetting this term is a classic cause of training instability.
 
 <figure>
-<img src="assets/figures/04-attention-lookup.svg" alt="The query token 'it' sends arrows to every key, with the thickest arrow going to 'cat'; the values flow back and combine into a single output vector.">
+<img src="assets/figures/attention-lookup.svg" alt="The query token 'it' sends arrows to every key, with the thickest arrow going to 'cat'; the values flow back and combine into a single output vector.">
 <figcaption>Self-attention as a soft dictionary lookup. The query for <em>it</em> scores every key; the softmax turns those scores into weights (shown as arrow thickness); the output is the weighted blend of values — here, mostly whatever <em>cat</em> was carrying. Unlike a hard lookup, nothing is missed and nothing is exact: every entry contributes in proportion to how well it matches.</figcaption>
 </figure>
 
@@ -50,7 +50,7 @@ If the model dimension is $d$ and you use $h$ heads, each head works in dimensio
 An LLM must predict the next token from *past* tokens only; letting position $i$ attend to position $i+1$ during training would leak the answer. The fix is a **causal mask**: before the softmax, set every score for a future position to $-\infty$ so it receives zero weight.
 
 <figure>
-<img src="assets/figures/04-causal-mask.svg" alt="A five-by-five attention matrix with the lower triangle shaded blue and the upper triangle greyed out and crossed.">
+<img src="assets/figures/causal-mask.svg" alt="A five-by-five attention matrix with the lower triangle shaded blue and the upper triangle greyed out and crossed.">
 <figcaption>The causal mask. Row <em>i</em> is what token <em>i</em> may read; the upper triangle is set to −∞ before the softmax, so those weights come out exactly zero. This is what makes the model a valid next-token predictor — and it is also why we can train on every position of a sequence <em>simultaneously</em>, since each position already sees only the past it will have at generation time.</figcaption>
 </figure>
 

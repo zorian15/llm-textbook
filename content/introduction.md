@@ -52,7 +52,7 @@ The harness is where a lot of the "it just behaves" comes from:
     The weights are an engine. The harness is the car built around it: steering, brakes, dashboard, seatbelts. A benchmark tests the engine; a product ships the car.
 
 <figure class="wide">
-<img src="assets/figures/01-lifecycle.svg" alt="Four stages left to right: pretraining produces a base model, supervised fine-tuning produces an instruct model, preference optimization produces an aligned model, and the harness produces the product. The first three change the weights; the harness does not.">
+<img src="assets/figures/lifecycle.svg" alt="Four stages left to right: pretraining produces a base model, supervised fine-tuning produces an instruct model, preference optimization produces an aligned model, and the harness produces the product. The first three change the weights; the harness does not.">
 <figcaption>The life of a model, and the shape of this book. The first three stages change the weights and are covered in Parts II–III; the harness changes nothing about the model but determines almost everything about the product, and is covered in Part V. Most engineers work to the right of the line.</figcaption>
 </figure>
 

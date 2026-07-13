@@ -40,7 +40,7 @@ class Part:
 
 # Front matter sits outside any part and is unnumbered.
 PREFACE = Chapter(
-    slug="00-preface",
+    slug="preface",
     label="",
     title="Preface",
     outline=(),
@@ -52,13 +52,13 @@ BOOK: tuple[Part, ...] = (
         title="I · Foundations",
         chapters=(
             Chapter(
-                slug="01-introduction",
+                slug="introduction",
                 label="1",
                 title="What Is a Large Language Model?",
                 outline=(),
             ),
             Chapter(
-                slug="02-deep-learning-refresher",
+                slug="deep-learning-refresher",
                 label="2",
                 title="Deep Learning, Just Enough",
                 outline=(
@@ -85,7 +85,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="03-tokenization",
+                slug="tokenization",
                 label="3",
                 title="Tokenization",
                 outline=(
@@ -108,13 +108,13 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="04-transformer",
+                slug="transformer",
                 label="4",
                 title="The Transformer",
                 outline=(),
             ),
             Chapter(
-                slug="05-modern-architectures",
+                slug="modern-architectures",
                 label="5",
                 title="How Modern Architectures Differ",
                 outline=(
@@ -150,7 +150,7 @@ BOOK: tuple[Part, ...] = (
         title="II · Pretraining",
         chapters=(
             Chapter(
-                slug="06-pretraining-objective",
+                slug="pretraining-objective",
                 label="6",
                 title="The Pretraining Objective and the Data",
                 outline=(
@@ -173,7 +173,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="07-training-dynamics",
+                slug="training-dynamics",
                 label="7",
                 title="Training Dynamics at Scale",
                 outline=(
@@ -196,7 +196,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="08-distributed-training",
+                slug="distributed-training",
                 label="8",
                 title="Distributed Training",
                 outline=(
@@ -223,7 +223,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="09-scaling-laws",
+                slug="scaling-laws",
                 label="9",
                 title="Scaling Laws",
                 outline=(
@@ -251,7 +251,7 @@ BOOK: tuple[Part, ...] = (
         title="III · Post-training and Alignment",
         chapters=(
             Chapter(
-                slug="10-sft",
+                slug="sft",
                 label="10",
                 title="Supervised Fine-Tuning",
                 outline=(
@@ -274,7 +274,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="11-rlhf",
+                slug="rlhf",
                 label="11",
                 title="RLHF and Reward Modeling",
                 outline=(
@@ -297,7 +297,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="12-preference-optimization",
+                slug="preference-optimization",
                 label="12",
                 title="Preference Optimization Without RL",
                 outline=(
@@ -320,7 +320,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="13-peft",
+                slug="peft",
                 label="13",
                 title="Parameter-Efficient Fine-Tuning",
                 outline=(
@@ -352,7 +352,7 @@ BOOK: tuple[Part, ...] = (
         title="IV · Inference and Serving",
         chapters=(
             Chapter(
-                slug="14-decoding",
+                slug="decoding",
                 label="14",
                 title="Decoding and Sampling",
                 outline=(
@@ -375,7 +375,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="15-inference-optimization",
+                slug="inference-optimization",
                 label="15",
                 title="Making Inference Fast",
                 outline=(
@@ -402,7 +402,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="16-quantization",
+                slug="quantization",
                 label="16",
                 title="Quantization",
                 outline=(
@@ -425,7 +425,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="17-serving-systems",
+                slug="serving-systems",
                 label="17",
                 title="Serving Systems in Production",
                 outline=(
@@ -453,7 +453,7 @@ BOOK: tuple[Part, ...] = (
         title="V · The Harness: Making Models Behave",
         chapters=(
             Chapter(
-                slug="18-prompting",
+                slug="prompting",
                 label="18",
                 title="Prompting and System Prompts",
                 outline=(
@@ -476,7 +476,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="19-tool-use",
+                slug="tool-use",
                 label="19",
                 title="Tool Use and Function Calling",
                 outline=(
@@ -499,7 +499,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="20-structured-output",
+                slug="structured-output",
                 label="20",
                 title="Structured Output",
                 outline=(
@@ -522,7 +522,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="21-rag",
+                slug="rag",
                 label="21",
                 title="Retrieval-Augmented Generation",
                 outline=(
@@ -549,7 +549,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="22-agents",
+                slug="agents",
                 label="22",
                 title="Agents",
                 outline=(
@@ -572,7 +572,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="23-safety-guardrails",
+                slug="safety-guardrails",
                 label="23",
                 title="Safety, Guardrails, and Moderation",
                 outline=(
@@ -600,7 +600,7 @@ BOOK: tuple[Part, ...] = (
         title="VI · Evaluation",
         chapters=(
             Chapter(
-                slug="24-evaluation",
+                slug="evaluation",
                 label="24",
                 title="Evaluating Language Models",
                 outline=(
@@ -632,7 +632,7 @@ BOOK: tuple[Part, ...] = (
         title="VII · The Frontier",
         chapters=(
             Chapter(
-                slug="25-reasoning",
+                slug="reasoning",
                 label="25",
                 title="Reasoning and Test-Time Compute",
                 outline=(
@@ -655,7 +655,7 @@ BOOK: tuple[Part, ...] = (
                 ),
             ),
             Chapter(
-                slug="26-open-problems",
+                slug="open-problems",
                 label="26",
                 title="Open Problems (Conclusion)",
                 outline=(
@@ -688,13 +688,13 @@ BOOK: tuple[Part, ...] = (
 
 APPENDICES: tuple[Chapter, ...] = (
     Chapter(
-        slug="A-local-llms",
+        slug="local-llms",
         label="A",
         title="Running LLMs Locally",
         outline=(),
     ),
     Chapter(
-        slug="B-math-reference",
+        slug="math-reference",
         label="B",
         title="Math and Notation Reference",
         outline=(
@@ -713,7 +713,7 @@ APPENDICES: tuple[Chapter, ...] = (
         ),
     ),
     Chapter(
-        slug="C-glossary",
+        slug="glossary",
         label="C",
         title="Glossary",
         outline=(

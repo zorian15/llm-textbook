@@ -209,3 +209,35 @@ publication rather than ship a broken page.
 The layout is responsive and verified clean down to 320 px. If you add a wide
 element (a big table, a code block with long lines, a figure), re-check that the
 page does not scroll sideways on a phone.
+
+## Slugs are permalinks
+
+A chapter's `slug` is its **public URL** (`transformer` → `/transformer.html`).
+Slugs are deliberately **semantic, not numbered**, so that reordering chapters in
+`toc.py` changes only the displayed `label` — never a URL. External links and
+bookmarks keep working.
+
+**Do not rename a slug casually.** It breaks every link anyone has to that page.
+If a rename is truly warranted, leave behind a redirect stub at the old path:
+
+```html
+<meta http-equiv="refresh" content="0; url=new-slug.html">
+```
+
+Figure filenames follow the same rule: name them for what they *show*
+(`causal-mask.svg`), never for the chapter they currently live in.
+
+## Integrating with a wider site
+
+The config block at the top of `build.py` holds everything needed to fold the
+book into a personal site. It is currently set for a standalone draft:
+
+| Constant | Now | Effect when set |
+|---|---|---|
+| `SITE_NAME` / `SITE_URL` | empty | Adds a "← back to <site>" link atop the sidebar. Set both or neither (asserted). |
+| `CANONICAL_BASE` | empty | Emits canonical + Open Graph tags so shared links preview nicely. |
+| `DRAFT` | `True` | While true, every page carries `noindex` and `robots.txt` disallows crawlers. Flip to `False` to let the book be found. |
+
+To match a site's palette later, override the CSS variables in the `:root` block
+of `assets/style.css` — every color in the book derives from those, and the
+figure palette constants in `figures/make_figures.py` mirror them.

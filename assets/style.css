@@ -91,6 +91,22 @@ article {
 
 /* ---- Sidebar table of contents ---------------------------------------- */
 
+/* A link back to the wider site, rendered only when SITE_URL is configured. */
+.site-backlink {
+    display: block;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--muted);
+    text-decoration: none;
+    margin-bottom: 1rem;
+}
+
+.site-backlink:hover {
+    color: var(--accent);
+}
+
 .book-brand {
     display: block;
     font-weight: 650;
