@@ -60,6 +60,8 @@ HEAD_META_BASE = """\
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f3ee">
 <meta name="color-scheme" content="light">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="LLM Book">
@@ -589,8 +591,14 @@ def landing_html() -> str:
 <main class="main">
 <div class="content-wrap">
 <article class="landing">
+<div class="landing-hero">
+<img class="landing-cover" src="assets/cover.svg" width="640" height="960"
+  alt="The book cover: a row of tokens with attention arcs converging on the empty next position.">
+<div>
 <h1>{html.escape(BOOK_TITLE)}</h1>
 <p class="subtitle">{html.escape(BOOK_SUBTITLE)}</p>
+</div>
+</div>
 {body}
 </article>
 </div>
@@ -605,6 +613,11 @@ def build() -> None:
     """Regenerate the entire site into `docs/`."""
     assert CONTENT_DIR.exists(), f"Missing content directory: {CONTENT_DIR}"
     assert (ASSETS_DIR / "style.css").exists(), "Missing assets/style.css."
+    for asset in ("cover.svg", "icon.svg", "apple-touch-icon.png"):
+        assert (ASSETS_DIR / asset).exists(), (
+            f"Missing assets/{asset}; run `python figures/make_figures.py` "
+            "to generate the cover and icons."
+        )
 
     if OUTPUT_DIR.exists():
         shutil.rmtree(OUTPUT_DIR)

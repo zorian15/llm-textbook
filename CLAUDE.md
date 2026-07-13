@@ -39,9 +39,14 @@ The four drafted chapters — `00-preface`, `01-introduction`, `04-transformer`,
 toc.py                  Single source of truth: parts, chapters, labels, outlines.
 references.py           Single source of truth for cited works (see Citations).
 content/<slug>.md       One Markdown file per drafted chapter. Optional.
-figures/make_figures.py Generates every figure as SVG into assets/figures/.
+figures/make_figures.py Generates every figure as SVG into assets/figures/,
+                        plus the cover and icons into assets/.
 assets/style.css        The entire look. No web fonts; macOS-native serif/sans.
 assets/figures/*.svg    GENERATED figures. Do not hand-edit; regenerate instead.
+assets/cover.svg        GENERATED cover (also icon.svg, apple-touch-icon.png).
+                        The next-token motif is the book's visual identity;
+                        edit fig_cover/fig_icon in make_figures.py, never the
+                        files.
 build.py                Generator. Reads toc.py + content/, writes docs/.
 docs/                   BUILD OUTPUT. Never edit by hand; gitignored.
 .github/workflows/      CI that rebuilds and deploys to GitHub Pages on push.

@@ -625,6 +625,37 @@ article th {
     margin-bottom: 2rem;
 }
 
+.landing-hero {
+    display: flex;
+    align-items: center;
+    gap: 2.4rem;
+    margin-bottom: 2.4rem;
+}
+
+.landing-hero .subtitle {
+    margin-bottom: 0;
+}
+
+.landing-cover {
+    width: 200px;
+    height: auto;
+    flex-shrink: 0;
+    border: 1px solid var(--rule);
+    box-shadow: 0 12px 28px rgba(23, 24, 27, 0.12);
+}
+
+@media (max-width: 640px) {
+    .landing-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.6rem;
+    }
+
+    .landing-cover {
+        width: 160px;
+    }
+}
+
 .landing .part-block {
     margin: 2rem 0;
 }

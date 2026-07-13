@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Site icon: three tokens with arcs converging on the empty next position.">
+<rect width="180" height="180" rx="36" fill="#f4f3ee"/>
+<path d="M 33.0 104 Q 90.0 46.6, 147.0 104" fill="none" stroke="#274b6d" stroke-width="1.73" opacity="0.40" stroke-linecap="round"/>
+<path d="M 71.0 104 Q 109.0 60.6, 147.0 104" fill="none" stroke="#274b6d" stroke-width="2.47" opacity="0.59" stroke-linecap="round"/>
+<path d="M 109.0 104 Q 128.0 74.6, 147.0 104" fill="none" stroke="#274b6d" stroke-width="3.20" opacity="0.77" stroke-linecap="round"/>
+<rect x="19.0" y="104" width="28" height="28" rx="4.5" fill="#274b6d" opacity="0.56"/>
+<rect x="57.0" y="104" width="28" height="28" rx="4.5" fill="#274b6d" opacity="0.78"/>
+<rect x="95.0" y="104" width="28" height="28" rx="4.5" fill="#274b6d" opacity="1.00"/>
+<rect x="133.0" y="104" width="28" height="28" rx="4.5" fill="none" stroke="#6a6d73" stroke-width="1.6" stroke-dasharray="5 4"/>
+<rect x="139.2" y="110.2" width="15.7" height="15.7" rx="2.8" fill="#9c6b12"/>
+</svg>

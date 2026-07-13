@@ -26,8 +26,10 @@ from matplotlib.ticker import FuncFormatter
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = ROOT / "assets" / "figures"
+ASSETS_DIR = ROOT / "assets"
 
 # The book's palette, mirrored from assets/style.css. Keep these in sync.
+PAPER = "#f4f3ee"
 INK = "#17181b"
 INK_SOFT = "#3b3d42"
 MUTED = "#6a6d73"
@@ -40,6 +42,7 @@ VIOLET = "#6b4f9c"
 BRICK = "#b04a3f"
 
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+SERIF = "'Charter', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif"
 
 
 def write_svg(name: str, svg: str) -> Path:
@@ -47,6 +50,15 @@ def write_svg(name: str, svg: str) -> Path:
     assert name.endswith(".svg"), f"Figure name must end in .svg, got '{name}'."
     assert svg.lstrip().startswith("<svg"), f"Figure '{name}' is not an SVG document."
     path = OUTPUT_DIR / name
+    path.write_text(svg, encoding="utf-8")
+    return path
+
+
+def write_root_asset(name: str, svg: str) -> Path:
+    """Write a raw SVG string to the assets root (cover, icon) and return its path."""
+    assert name.endswith(".svg"), f"Asset name must end in .svg, got '{name}'."
+    assert svg.lstrip().startswith("<svg"), f"Asset '{name}' is not an SVG document."
+    path = ASSETS_DIR / name
     path.write_text(svg, encoding="utf-8")
     return path
 
@@ -566,12 +578,222 @@ def fig_bandwidth() -> Path:
     return save_plot(fig, "bandwidth.svg")
 
 
+# ---------------------------------------------------------------------------
+# The cover and the icons.
+#
+# One motif carries the book's identity: a row of context tokens fading with
+# distance, attention arcs converging on a dashed *empty* next position, and
+# an amber token settling into it. Autoregression, attention, and the frontier
+# (the token not yet written) in a single image. The cover sets it under the
+# title; the icons reduce it to four cells so it survives at favicon size.
+# ---------------------------------------------------------------------------
+
+
+def next_token_motif_svg(
+    x0: float, row_y: float, size: float, gap: float, n_context: int
+) -> str:
+    """Emit the next-token motif as SVG elements.
+
+    Draws `n_context` filled tokens, a trailing dashed empty slot holding a
+    smaller amber token, and attention arcs from every context token to the
+    slot. `row_y` is the top edge of the token row.
+    """
+    step = size + gap
+    centers = [x0 + i * step + size / 2 for i in range(n_context + 1)]
+    slot_cx = centers[-1]
+    parts = []
+
+    # Arcs first, so the tokens sit on top of their endpoints.
+    for i in range(n_context):
+        distance = n_context - i
+        peak = row_y - (size * 0.55 + distance * size * 0.5)
+        width = 1.0 + (i + 1) * (2.2 / n_context)
+        opacity = 0.22 + (i + 1) * (0.55 / n_context)
+        mid_x = (centers[i] + slot_cx) / 2
+        parts.append(
+            f'<path d="M {centers[i]:.1f} {row_y} Q {mid_x:.1f} {peak:.1f}, '
+            f'{slot_cx:.1f} {row_y}" fill="none" stroke="{ACCENT}" '
+            f'stroke-width="{width:.2f}" opacity="{opacity:.2f}" '
+            f'stroke-linecap="round"/>'
+        )
+
+    for i in range(n_context):
+        opacity = 0.34 + 0.66 * (i + 1) / n_context
+        parts.append(
+            f'<rect x="{x0 + i * step:.1f}" y="{row_y}" width="{size}" '
+            f'height="{size}" rx="{size * 0.16:.1f}" fill="{ACCENT}" '
+            f'opacity="{opacity:.2f}"/>'
+        )
+
+    slot_x = x0 + n_context * step
+    parts.append(
+        f'<rect x="{slot_x:.1f}" y="{row_y}" width="{size}" height="{size}" '
+        f'rx="{size * 0.16:.1f}" fill="none" stroke="{MUTED}" stroke-width="1.6" '
+        f'stroke-dasharray="5 4"/>'
+    )
+    inset = size * 0.22
+    parts.append(
+        f'<rect x="{slot_x + inset:.1f}" y="{row_y + inset:.1f}" '
+        f'width="{size - 2 * inset:.1f}" height="{size - 2 * inset:.1f}" '
+        f'rx="{size * 0.1:.1f}" fill="{AMBER}"/>'
+    )
+    return "\n".join(parts)
+
+
+def fig_cover() -> Path:
+    """The book cover: title over the next-token motif, framed like a monograph."""
+    width, height = 640, 960
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
+        f'role="img" aria-label="Book cover: Foundations of Large Language Models. '
+        f"A row of tokens with attention arcs converging on the empty next "
+        f'position, where an amber token is settling in.">',
+        f'<rect width="{width}" height="{height}" fill="{PAPER}"/>',
+        # A hairline inset frame makes the page read as a physical cover.
+        f'<rect x="26" y="26" width="{width - 52}" height="{height - 52}" '
+        f'fill="none" stroke="{RULE_STRONG}" stroke-width="1.5"/>',
+        # Eyebrow and title, paired the way every chapter opens.
+        f'<text x="72" y="152" font-family="{SANS}" font-size="16" '
+        f'font-weight="650" letter-spacing="5" fill="{ACCENT}">FOUNDATIONS OF</text>',
+    ]
+    for i, line in enumerate(("Large", "Language", "Models")):
+        parts.append(
+            f'<text x="68" y="{232 + i * 74}" font-family="{SERIF}" font-size="68" '
+            f'font-weight="700" fill="{INK}">{line}</text>'
+        )
+
+    parts.append(next_token_motif_svg(x0=72, row_y=596, size=46, gap=15, n_context=6))
+
+    parts.append(
+        f'<path d="M 72 830 L 148 830" stroke="{RULE_STRONG}" stroke-width="1.5"/>'
+    )
+    for i, line in enumerate(
+        ("Training, serving, and shipping", "large language models.")
+    ):
+        parts.append(
+            f'<text x="72" y="{862 + i * 23}" font-family="{SANS}" font-size="15.5" '
+            f'fill="{MUTED}">{line}</text>'
+        )
+    parts.append("</svg>")
+    return write_root_asset("cover.svg", "\n".join(parts))
+
+
+def fig_icon() -> Path:
+    """The favicon: the next-token motif alone on a rounded paper tile."""
+    parts = [
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" '
+        'aria-label="Site icon: three tokens with arcs converging on the empty '
+        'next position.">',
+        f'<rect width="180" height="180" rx="36" fill="{PAPER}"/>',
+        next_token_motif_svg(x0=19, row_y=104, size=28, gap=10, n_context=3),
+        "</svg>",
+    ]
+    return write_root_asset("icon.svg", "\n".join(parts))
+
+
+def fig_touch_icon() -> Path:
+    """The apple-touch-icon: the favicon motif, full-bleed PNG (iOS rounds it).
+
+    iOS does not accept SVG here, so matplotlib re-draws the same geometry as
+    `fig_icon` at exactly 180 by 180 pixels.
+    """
+    from matplotlib.patches import FancyBboxPatch, PathPatch, Rectangle
+    from matplotlib.path import Path as MplPath
+
+    dpi = 100
+    fig = plt.figure(figsize=(1.8, 1.8), dpi=dpi)
+    ax = fig.add_axes((0.0, 0.0, 1.0, 1.0))
+    ax.set_xlim(0, 180)
+    ax.set_ylim(180, 0)  # Flip y so the geometry matches the SVG coordinates.
+    ax.axis("off")
+    ax.add_patch(Rectangle((0, 0), 180, 180, facecolor=PAPER, edgecolor="none"))
+
+    # Mirror the geometry of fig_icon exactly; a lw point is dpi/72 pixels.
+    x0, row_y, size, gap, n_context = 19.0, 104.0, 28.0, 10.0, 3
+    px = 72 / dpi
+    step = size + gap
+    centers = [x0 + i * step + size / 2 for i in range(n_context + 1)]
+    slot_cx = centers[-1]
+
+    for i in range(n_context):
+        distance = n_context - i
+        peak = row_y - (size * 0.55 + distance * size * 0.5)
+        width = 1.0 + (i + 1) * (2.2 / n_context)
+        opacity = 0.22 + (i + 1) * (0.55 / n_context)
+        mid_x = (centers[i] + slot_cx) / 2
+        arc = MplPath(
+            [(centers[i], row_y), (mid_x, peak), (slot_cx, row_y)],
+            [MplPath.MOVETO, MplPath.CURVE3, MplPath.CURVE3],
+        )
+        ax.add_patch(
+            PathPatch(
+                arc,
+                fill=False,
+                edgecolor=ACCENT,
+                linewidth=width * px,
+                alpha=opacity,
+                capstyle="round",
+            )
+        )
+
+    rounding = size * 0.16
+    for i in range(n_context):
+        opacity = 0.34 + 0.66 * (i + 1) / n_context
+        ax.add_patch(
+            FancyBboxPatch(
+                (x0 + i * step + rounding, row_y + rounding),
+                size - 2 * rounding,
+                size - 2 * rounding,
+                boxstyle=f"round,pad={rounding}",
+                facecolor=ACCENT,
+                edgecolor="none",
+                alpha=opacity,
+                mutation_aspect=1,
+            )
+        )
+
+    slot_x = x0 + n_context * step
+    ax.add_patch(
+        FancyBboxPatch(
+            (slot_x + rounding, row_y + rounding),
+            size - 2 * rounding,
+            size - 2 * rounding,
+            boxstyle=f"round,pad={rounding}",
+            facecolor="none",
+            edgecolor=MUTED,
+            linewidth=1.6 * px,
+            linestyle=(0, (3, 2.4)),
+            mutation_aspect=1,
+        )
+    )
+    inset = size * 0.22
+    ax.add_patch(
+        FancyBboxPatch(
+            (slot_x + inset + size * 0.1, row_y + inset + size * 0.1),
+            size - 2 * inset - 2 * size * 0.1,
+            size - 2 * inset - 2 * size * 0.1,
+            boxstyle=f"round,pad={size * 0.1}",
+            facecolor=AMBER,
+            edgecolor="none",
+            mutation_aspect=1,
+        )
+    )
+
+    path = ASSETS_DIR / "apple-touch-icon.png"
+    fig.savefig(path, dpi=dpi, facecolor=PAPER)
+    plt.close(fig)
+    return path
+
+
 FIGURES = (
     fig_lifecycle,
     fig_attention_lookup,
     fig_causal_mask,
     fig_capacity,
     fig_bandwidth,
+    fig_cover,
+    fig_icon,
+    fig_touch_icon,
 )
 
 

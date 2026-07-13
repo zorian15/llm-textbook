@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 960" role="img" aria-label="Book cover: Foundations of Large Language Models. A row of tokens with attention arcs converging on the empty next position, where an amber token is settling in.">
+<rect width="640" height="960" fill="#f4f3ee"/>
+<rect x="26" y="26" width="588" height="908" fill="none" stroke="#cfcdc4" stroke-width="1.5"/>
+<text x="72" y="152" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="650" letter-spacing="5" fill="#274b6d">FOUNDATIONS OF</text>
+<text x="68" y="232" font-family="'Charter', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif" font-size="68" font-weight="700" fill="#17181b">Large</text>
+<text x="68" y="306" font-family="'Charter', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif" font-size="68" font-weight="700" fill="#17181b">Language</text>
+<text x="68" y="380" font-family="'Charter', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif" font-size="68" font-weight="700" fill="#17181b">Models</text>
+<path d="M 95.0 596 Q 278.0 432.7, 461.0 596" fill="none" stroke="#274b6d" stroke-width="1.37" opacity="0.31" stroke-linecap="round"/>
+<path d="M 156.0 596 Q 308.5 455.7, 461.0 596" fill="none" stroke="#274b6d" stroke-width="1.73" opacity="0.40" stroke-linecap="round"/>
+<path d="M 217.0 596 Q 339.0 478.7, 461.0 596" fill="none" stroke="#274b6d" stroke-width="2.10" opacity="0.49" stroke-linecap="round"/>
+<path d="M 278.0 596 Q 369.5 501.7, 461.0 596" fill="none" stroke="#274b6d" stroke-width="2.47" opacity="0.59" stroke-linecap="round"/>
+<path d="M 339.0 596 Q 400.0 524.7, 461.0 596" fill="none" stroke="#274b6d" stroke-width="2.83" opacity="0.68" stroke-linecap="round"/>
+<path d="M 400.0 596 Q 430.5 547.7, 461.0 596" fill="none" stroke="#274b6d" stroke-width="3.20" opacity="0.77" stroke-linecap="round"/>
+<rect x="72.0" y="596" width="46" height="46" rx="7.4" fill="#274b6d" opacity="0.45"/>
+<rect x="133.0" y="596" width="46" height="46" rx="7.4" fill="#274b6d" opacity="0.56"/>
+<rect x="194.0" y="596" width="46" height="46" rx="7.4" fill="#274b6d" opacity="0.67"/>
+<rect x="255.0" y="596" width="46" height="46" rx="7.4" fill="#274b6d" opacity="0.78"/>
+<rect x="316.0" y="596" width="46" height="46" rx="7.4" fill="#274b6d" opacity="0.89"/>
+<rect x="377.0" y="596" width="46" height="46" rx="7.4" fill="#274b6d" opacity="1.00"/>
+<rect x="438.0" y="596" width="46" height="46" rx="7.4" fill="none" stroke="#6a6d73" stroke-width="1.6" stroke-dasharray="5 4"/>
+<rect x="448.1" y="606.1" width="25.8" height="25.8" rx="4.6" fill="#9c6b12"/>
+<path d="M 72 830 L 148 830" stroke="#cfcdc4" stroke-width="1.5"/>
+<text x="72" y="862" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15.5" fill="#6a6d73">Training, serving, and shipping</text>
+<text x="72" y="885" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15.5" fill="#6a6d73">large language models.</text>
+</svg>
