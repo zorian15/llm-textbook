@@ -1,10 +1,10 @@
-The transformer is the architecture underneath every modern LLM. Its one genuinely new idea is **self-attention**: a mechanism that lets every position in a sequence look directly at every other position and decide, per token, what to pull in. This chapter builds a decoder-only transformer — the LLM kind — from that idea outward.
+The transformer [@vaswani2017] is the architecture underneath every modern LLM. Its one genuinely new idea is **self-attention**: a mechanism that lets every position in a sequence look directly at every other position and decide, per token, what to pull in. This chapter builds a decoder-only transformer — the LLM kind — from that idea outward.
 
 ## The problem attention solves
 
-Before transformers, sequence models processed tokens one at a time, carrying a running summary in a hidden state (RNNs, LSTMs). Two problems followed: information from far back got squeezed through a bottleneck and faded, and the sequential dependency made training hard to parallelize.
+Before transformers, sequence models processed tokens one at a time, carrying a running summary in a hidden state (RNNs, LSTMs [@hochreiter1997]). Two problems followed: information from far back got squeezed through a bottleneck and faded, and the sequential dependency made training hard to parallelize.
 
-Attention removes the bottleneck. Instead of forcing everything through a single evolving state, it lets each token reach back and read *directly* from any earlier token, with the strength of each read learned from context.
+Attention removes the bottleneck. Instead of forcing everything through a single evolving state, it lets each token reach back and read *directly* from any earlier token, with the strength of each read learned from context — an idea that first appeared as a bolt-on to translation RNNs [@bahdanau2015] before the transformer made it the whole machine.
 
 !!! analogy "Analogy"
     Reading a mystery novel, you hit the word "she" and instantly glance back to whichever earlier name it refers to — maybe twenty pages ago, maybe one sentence. You are not replaying every page; you jump straight to the relevant spot. Attention is that glance, computed for every word at once. It leaks in that the model has no true memory across separate calls — each glance only reaches within the current context window.
@@ -71,8 +71,8 @@ def block(x):
 
 Three pieces are doing quiet but essential work:
 
-- **Residual connections** (the `x + ...`) give gradients a clean path around each sublayer, so stacking 80 blocks does not kill training. Think of them as an express lane the signal can always take.
-- **Normalization** keeps activations in a stable range. Modern models normalize *before* each sublayer (pre-norm) rather than after, which trains more stably at depth; Chapter 5 covers why RMSNorm replaced LayerNorm.
+- **Residual connections** (the `x + ...`) give gradients a clean path around each sublayer, so stacking 80 blocks does not kill training [@he2016]. Think of them as an express lane the signal can always take.
+- **Normalization** keeps activations in a stable range. Modern models normalize *before* each sublayer (pre-norm) rather than after, which trains more stably at depth [@xiong2020]; Chapter 5 covers why RMSNorm replaced LayerNorm.
 - **The FFN** is usually two linear layers with a nonlinearity, widening to roughly $4d$ and back. It is where most of the parameters — and, many argue, most of the stored *knowledge* — live. Attention decides what to look at; the FFN decides what to make of it.
 
 !!! interview "Interview"

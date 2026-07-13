@@ -37,6 +37,7 @@ The four drafted chapters — `00-preface`, `01-introduction`, `04-transformer`,
 
 ```
 toc.py                  Single source of truth: parts, chapters, labels, outlines.
+references.py           Single source of truth for cited works (see Citations).
 content/<slug>.md       One Markdown file per drafted chapter. Optional.
 figures/make_figures.py Generates every figure as SVG into assets/figures/.
 assets/style.css        The entire look. No web fonts; macOS-native serif/sans.
@@ -105,6 +106,30 @@ Use Python-Markdown admonition syntax. Supported types (styled in `style.css`):
 ```
 
 Keep the title argument matching the type (e.g. `!!! interview "Interview"`).
+
+### Citations
+
+Cite a work with `[@key]` in the prose, or `[@key1; @key2]` for several at
+once. The build replaces it with a linked author-year citation — "(Vaswani et
+al., 2017)" — and appends a **References** section to any chapter that cites
+something, listing exactly the works that chapter cites. Keys live in
+`references.py`; an unknown key fails the build.
+
+* **When to cite:** where a claim rests on a specific source — an
+  architecture's origin, an empirical finding, a named method. Not every
+  sentence; a reader should meet a citation only where they might reasonably
+  ask "says who?". Prose should read naturally with the parenthetical removed.
+* **Adding an entry:** append a `Reference` to `_ENTRIES` in `references.py`
+  (key style: `vaswani2017`, first-author family name + venue/publication
+  year). **Verify against the actual paper** — arXiv id, author list and
+  order, year, title — before committing; a wrong citation is worse than none.
+  Prefer the arXiv id when one exists; otherwise a stable `url` (DOI,
+  publisher, or author-hosted page).
+* Citations inside fenced code blocks are ignored. Do not hand-write
+  reference lists or bibliography sections; the build owns them.
+* The build prints a note listing entries that are not yet cited anywhere —
+  harmless while chapters are pending, worth pruning if an entry becomes
+  permanently orphaned.
 
 ### Math
 
@@ -178,13 +203,15 @@ The author writes research code and values correctness above all:
 
 ## Content status
 
-Drafted (use as style reference): `00-preface`, `01-introduction`,
-`04-transformer`, `A-local-llms`.
+Drafted: all of Part I (`preface`, `introduction`, `deep-learning-refresher`,
+`tokenization`, `transformer`, `modern-architectures`) and `local-llms`. The
+original style references are `preface`, `introduction`, `transformer`, and
+`local-llms`.
 
 Everything else is a stub driven by its `outline` in `toc.py`. Suggested order
-to fill in: `02` and `03` (finish Part I), then `09-scaling-laws`, then Part III
-(`10`–`13`), then the harness (Part V), which is the most interview-relevant and
-least standard across other resources.
+to fill in: `09-scaling-laws`, then Part III (`10`–`13`), then the harness
+(Part V), which is the most interview-relevant and least standard across other
+resources.
 
 ## Definition of done for a chapter
 
@@ -193,6 +220,8 @@ least standard across other resources.
 - At least one Intuition box and the Interview questions a candidate would face.
 - Analogies name where they leak.
 - Cross-references to related chapters are present and correct.
+- Load-bearing claims carry `[@key]` citations, each verified against the
+  actual paper (see Citations above).
 - `python build.py` runs clean and the page reads well in a browser.
 
 ## Deployment

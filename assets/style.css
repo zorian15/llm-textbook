@@ -458,6 +458,49 @@ article th {
     font-weight: 650;
 }
 
+/* ---- Citations and references ------------------------------------------ */
+
+/* In-text author-year citations, e.g. (Vaswani et al., 2017). The link is
+   quieter than a body link so citations do not stripe the paragraph. */
+.citation a {
+    border-bottom: none;
+    color: var(--accent);
+}
+
+.citation a:hover {
+    border-bottom: 1px solid var(--accent);
+}
+
+.references {
+    margin-top: 3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+}
+
+.references h2 {
+    font-size: 1.05rem;
+}
+
+.reference-list {
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+}
+
+.reference-list li {
+    /* Hanging indent, so multi-line entries read as one unit. */
+    padding-left: 1.6rem;
+    text-indent: -1.6rem;
+    margin-bottom: 0.55rem;
+    scroll-margin-top: 1.5rem;
+}
+
+/* Briefly spotlight the entry a citation just jumped to. */
+.reference-list li:target {
+    background: var(--accent-soft);
+}
+
 /* ---- Stub banner ------------------------------------------------------- */
 
 .stub-banner {

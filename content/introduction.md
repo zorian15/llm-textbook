@@ -20,7 +20,7 @@ Training is nothing more exotic than teaching $p_\theta$ to assign high probabil
 
 ## Why "large" is the whole story
 
-Nothing about next-token prediction is new; the surprise is what happens at scale. As you increase parameters, data, and compute together, the loss falls along a smooth power law, and somewhere along that curve the model stops merely completing text and starts following instructions, doing multi-step arithmetic, and writing working code. We spend Chapter 9 on the exact shape of these *scaling laws*, because they are the closest thing the field has to a design equation.
+Nothing about next-token prediction is new; the surprise is what happens at scale. As you increase parameters, data, and compute together, the loss falls along a smooth power law [@kaplan2020], and somewhere along that curve the model stops merely completing text and starts following instructions, doing multi-step arithmetic, and writing working code [@brown2020; @wei2022]. We spend Chapter 9 on the exact shape of these *scaling laws*, because they are the closest thing the field has to a design equation.
 
 The practical consequence: much of LLM engineering is really *systems* engineering. Making a model bigger means splitting it across hundreds of GPUs to train (Chapter 8) and squeezing it back onto a few to serve (Part IV). A great deal of what an LLM engineer does is fight the memory and bandwidth of physical hardware.
 
@@ -31,7 +31,7 @@ A freshly pretrained model is a *base model*. It will happily continue a documen
 Turning it into ChatGPT- or Claude-like behavior takes *post-training*:
 
 - **Supervised fine-tuning** (Chapter 10) shows it thousands of examples of the assistant format — a helpful answer following a user request.
-- **Preference optimization** (Chapters 11–12), via RLHF or its RL-free cousins like DPO, tunes it toward responses humans actually prefer, using comparisons rather than demonstrations.
+- **Preference optimization** (Chapters 11–12), via RLHF [@christiano2017; @ouyang2022] or its RL-free cousins like DPO [@rafailov2023], tunes it toward responses humans actually prefer, using comparisons rather than demonstrations.
 
 !!! interview "Interview"
     *Why isn't supervised fine-tuning enough — why bother with RLHF?* Because you can *recognize* a good answer more reliably than you can *write* the single best one. Preference methods learn from rankings of outputs the model itself generates, which is a richer and more scalable signal than a fixed set of gold demonstrations.
@@ -60,7 +60,7 @@ Part V is devoted to the harness, because in 2026 most engineering roles that to
 
 ## The frontier
 
-Two shifts define the current edge. First, **reasoning models** (Chapter 25) spend extra compute *at inference time* — generating long internal chains of thought, often trained with reinforcement learning on problems whose answers can be checked automatically. Compute at test time became a new axis to scale, alongside model size.
+Two shifts define the current edge. First, **reasoning models** (Chapter 25) spend extra compute *at inference time* — generating long internal chains of thought, often trained with reinforcement learning on problems whose answers can be checked automatically [@openai2024; @deepseek2025]. Compute at test time became a new axis to scale, alongside model size.
 
 Second, the **open problems** (Chapter 26) remain stubborn: models still hallucinate confidently, we still cannot fully read what a model has learned, and we do not yet have alignment techniques we would trust on systems smarter than us. These are where the interesting research is, and they close the book.
 

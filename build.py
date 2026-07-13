@@ -18,6 +18,7 @@ from pathlib import Path
 
 import markdown
 
+import references
 import toc
 
 ROOT = Path(__file__).resolve().parent
@@ -229,6 +230,101 @@ def number_figures(body_html: str, label: str, slug: str) -> str:
     return FIGCAPTION_PATTERN.sub(replace, body_html)
 
 
+CITATION_PATTERN = re.compile(r"\[(?P<body>@[^\]]+)\]")
+FENCE_PATTERN = re.compile(r"^\s*(```|~~~)")
+
+
+def citation_html(keys: list[str]) -> str:
+    """Render one parenthetical author-year citation for the given keys."""
+    links = []
+    for key in keys:
+        ref = references.REFERENCES[key]
+        label = html.escape(ref.in_text_label())
+        links.append(f'<a href="#ref-{key}">{label}</a>')
+    return f'<span class="citation">({"; ".join(links)})</span>'
+
+
+def process_citations(source: str, slug: str) -> tuple[str, list[str]]:
+    """Replace every `[@key]` (or `[@a; @b]`) citation with linked HTML.
+
+    Fenced code blocks are left untouched. Returns the rewritten source and
+    the cited keys in order of appearance. An unknown key is a build failure,
+    not a silently unlinked citation.
+    """
+    cited: list[str] = []
+
+    def replace(match: re.Match[str]) -> str:
+        keys: list[str] = []
+        for segment in match.group("body").split(";"):
+            segment = segment.strip()
+            assert segment.startswith("@"), (
+                f"Malformed citation {match.group(0)!r} in chapter '{slug}'; "
+                "every key in a citation must start with '@'."
+            )
+            key = segment[1:]
+            assert key in references.REFERENCES, (
+                f"Chapter '{slug}' cites unknown key '@{key}'; "
+                "add the entry to references.py."
+            )
+            keys.append(key)
+        cited.extend(keys)
+        return citation_html(keys)
+
+    lines = []
+    in_fence = False
+    for line in source.split("\n"):
+        if FENCE_PATTERN.match(line):
+            in_fence = not in_fence
+            lines.append(line)
+            continue
+        lines.append(line if in_fence else CITATION_PATTERN.sub(replace, line))
+    assert not in_fence, f"Unclosed code fence in chapter '{slug}'."
+    return "\n".join(lines), cited
+
+
+def format_reference_authors(ref: references.Reference) -> str:
+    """Render an entry's author list in the reference-list style."""
+    authors = [html.escape(author) for author in ref.authors]
+    if ref.truncated:
+        return ", ".join(authors) + ", et al."
+    if len(authors) == 1:
+        return authors[0]
+    return ", ".join(authors[:-1]) + ", &amp; " + authors[-1]
+
+
+def references_section_html(cited_keys: list[str]) -> str:
+    """Build a chapter's References section from the keys it cites.
+
+    Entries are ordered alphabetically by first author, then year, matching
+    the author-year in-text style.
+    """
+    assert cited_keys, "references_section_html called with no citations."
+    unique = sorted(
+        set(cited_keys),
+        key=lambda k: (
+            references.REFERENCES[k].first_author_family().lower(),
+            references.REFERENCES[k].year,
+            k,
+        ),
+    )
+    items = []
+    for key in unique:
+        ref = references.REFERENCES[key]
+        title = html.escape(ref.title)
+        link = ref.link()
+        if link:
+            title = f'<a href="{link}">{title}</a>'
+        tail = f" arXiv:{ref.arxiv}." if ref.arxiv else ""
+        items.append(
+            f'<li id="ref-{key}">{format_reference_authors(ref)} ({ref.year}). '
+            f"{title}. <em>{html.escape(ref.venue)}</em>.{tail}</li>"
+        )
+    return (
+        '<section class="references">\n<h2 id="references">References</h2>\n'
+        '<ul class="reference-list">\n' + "\n".join(items) + "\n</ul>\n</section>"
+    )
+
+
 def wrap_tables(body_html: str) -> str:
     """Wrap every table in a horizontally scrollable container.
 
@@ -266,8 +362,8 @@ def synthesize_stub(chapter: toc.Chapter) -> str:
 
 def render_body(
     chapter: toc.Chapter, md: markdown.Markdown
-) -> tuple[str, list[tuple[str, str, str]]]:
-    """Render one chapter's body HTML and its rail entries."""
+) -> tuple[str, list[tuple[str, str, str]], list[str]]:
+    """Render one chapter's body HTML, its rail entries, and its cited keys."""
     content_path = CONTENT_DIR / f"{chapter.slug}.md"
     if content_path.exists():
         source = content_path.read_text(encoding="utf-8")
@@ -275,11 +371,20 @@ def render_body(
     else:
         source = synthesize_stub(chapter)
 
+    source, cited_keys = process_citations(source, chapter.slug)
     md.reset()
     body_html = md.convert(source)
     body_html = number_figures(body_html, chapter.label, chapter.slug)
     body_html = wrap_tables(body_html)
-    return number_headings(body_html, chapter.label)
+    body_html, rail = number_headings(body_html, chapter.label)
+
+    # The References section is appended after heading numbering on purpose:
+    # it is back matter and stays unnumbered, like the numbered-section rule
+    # in reverse.
+    if cited_keys:
+        body_html += references_section_html(cited_keys)
+        rail.append(("references", "", "References"))
+    return body_html, rail, cited_keys
 
 
 def sidebar_html(active_slug: str) -> str:
@@ -391,9 +496,13 @@ def page_html(
     index: int,
     pages: tuple[toc.Chapter, ...],
     md: markdown.Markdown,
-) -> str:
-    """Assemble the full HTML document for one chapter."""
-    body, rail_entries = render_body(chapter, md)
+) -> tuple[str, list[str]]:
+    """Assemble the full HTML document for one chapter.
+
+    Returns the document and the chapter's cited reference keys so the build
+    can report which entries in references.py are never cited.
+    """
+    body, rail_entries, cited_keys = render_body(chapter, md)
 
     number_span = (
         f'<span class="chapter-number">{chapter.label}</span>' if chapter.label else ""
@@ -402,7 +511,7 @@ def page_html(
         f'<h1 class="chapter-title">{number_span}{html.escape(chapter.title)}</h1>'
     )
 
-    return f"""<!DOCTYPE html>
+    document = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 {head_meta(chapter.title, f'{chapter.slug}.html')}<title>{html.escape(chapter.title)} · {html.escape(BOOK_TITLE)}</title>
@@ -430,6 +539,7 @@ def page_html(
 {MENU_SCRIPT}</body>
 </html>
 """
+    return document, cited_keys
 
 
 def landing_html() -> str:
@@ -504,8 +614,10 @@ def build() -> None:
     pages = toc.all_pages()
     md = make_markdown()
 
+    cited_anywhere: set[str] = set()
     for index, chapter in enumerate(pages):
-        document = page_html(chapter, index, pages, md)
+        document, cited_keys = page_html(chapter, index, pages, md)
+        cited_anywhere.update(cited_keys)
         (OUTPUT_DIR / f"{chapter.slug}.html").write_text(document, encoding="utf-8")
 
     (OUTPUT_DIR / "index.html").write_text(landing_html(), encoding="utf-8")
@@ -525,6 +637,13 @@ def build() -> None:
     print(
         f"  {drafted}/{len(pages)} chapters have drafted content; the rest are stubs."
     )
+
+    uncited = sorted(set(references.REFERENCES) - cited_anywhere)
+    if uncited:
+        print(
+            f"  Note: {len(uncited)} reference(s) in references.py are not yet "
+            f"cited anywhere: {', '.join(uncited)}."
+        )
 
 
 if __name__ == "__main__":
