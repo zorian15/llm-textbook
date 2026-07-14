@@ -2162,6 +2162,1271 @@ def fig_config_tour() -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Figure 6.1 — a sharper prediction is a shorter code.
+# ---------------------------------------------------------------------------
+
+
+def fig_prediction_compression() -> Path:
+    """Diagram: two models pay -log2 p bits for the same next token."""
+    import math
+
+    width, height = 660, 296
+    context = ["the", "capital", "of", "France", "is"]
+    rows = [
+        ("SHARP MODEL: PAYS 1 BIT", 0.50, ACCENT),
+        ("FLAT MODEL: PAYS 5.6 BITS", 0.02, BRICK),
+    ]
+
+    body: list[str] = []
+    chip_w, chip_h, chip_gap = 64, 26, 6
+
+    for r, (label, p, color) in enumerate(rows):
+        top = 48 + r * 116
+        bits = -math.log2(p)
+        body.append(eyebrow(24, top - 10, label, fill=color))
+
+        # The shared context, fading toward the prediction point.
+        for i, tok in enumerate(context):
+            x = 24 + i * (chip_w + chip_gap)
+            body += token_box(
+                x, top, chip_w, chip_h, tok, fill="#ffffff", text_fill=INK_SOFT
+            )
+
+        # The predicted token, with the probability the model gave it.
+        px = 24 + len(context) * (chip_w + chip_gap) + 10
+        body += token_box(
+            px,
+            top,
+            chip_w,
+            chip_h,
+            "Paris",
+            fill=color,
+            stroke="none",
+            text_fill="#ffffff",
+            weight=700,
+        )
+        body.append(
+            f'<text x="{px + chip_w / 2:.1f}" y="{top + chip_h + 16}" font-size="10.5" '
+            f'text-anchor="middle" fill="{MUTED}">p = {p:.2f}</text>'
+        )
+
+        # The code the prediction buys: one cell per bit, rounded up.
+        cells = max(1, round(bits))
+        cx0 = px + chip_w + 26
+        cell = 16
+        for c in range(cells):
+            body.append(
+                f'<rect x="{cx0 + c * (cell + 3):.1f}" y="{top + 5:.1f}" '
+                f'width="{cell}" height="{cell}" rx="3" fill="{color}" '
+                f'opacity="{0.9 - c * 0.08:.2f}"/>'
+            )
+        body.append(
+            f'<text x="{cx0:.1f}" y="{top + chip_h + 16}" font-size="10.5" '
+            f'fill="{color}">-log2({p:.2f}) &#8776; {bits:.1f} bits</text>'
+        )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'
+        f"Same token, different bill. Summed over a corpus, the sharper model "
+        f"writes the shorter file &#8212; the loss is that file's size.</text>"
+    )
+    return write_svg(
+        "prediction-compression.svg",
+        svg_doc(
+            width,
+            height,
+            "Two models pay different bit costs for the same next token.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 6.2 — an illustrative pretraining mixture.
+# ---------------------------------------------------------------------------
+
+
+def fig_pretraining_mix() -> Path:
+    """Plot: one stacked bar of where a modern corpus's tokens come from."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 2.4))
+
+    segments = [
+        ("Filtered web", 55, ACCENT),
+        ("Code", 15, VIOLET),
+        ("Multilingual", 12, RULE_STRONG),
+        ("Academic & books", 8, AMBER),
+        ("Math", 5, BRICK),
+        ("Curated", 5, MUTED),
+    ]
+    assert sum(s for _, s, _ in segments) == 100, "Mixture shares must total 100."
+
+    left = 0.0
+    for i, (name, share, color) in enumerate(segments):
+        ax.barh(0, share, left=left, height=0.55, color=color)
+        mid = left + share / 2
+        pct_color = INK_SOFT if color == RULE_STRONG else "#ffffff"
+        ax.text(
+            mid,
+            0,
+            f"{share}%",
+            ha="center",
+            va="center",
+            fontsize=8,
+            color=pct_color,
+        )
+        # Names sit under the bar on three staggered rows, so that no two
+        # adjacent (or once-removed) labels ever share a baseline and collide.
+        row = -0.46 - (i % 3) * 0.26
+        ax.text(
+            mid, row + 0.04, "|", ha="center", va="top", fontsize=5, color=RULE_STRONG
+        )
+        ax.text(
+            mid, row - 0.06, name, ha="center", va="top", fontsize=8, color=INK_SOFT
+        )
+        left += share
+
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-1.35, 0.55)
+    ax.set_yticks([])
+    ax.set_xlabel("share of training tokens (illustrative)")
+    ax.set_title(
+        "The web supplies volume; the small streams supply density", loc="left"
+    )
+    ax.spines["left"].set_visible(False)
+    return save_plot(fig, "pretraining-mix.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 6.3 — the cleaning funnel from raw crawl to corpus.
+# ---------------------------------------------------------------------------
+
+
+def fig_data_funnel() -> Path:
+    """Diagram: each cleaning stage discards a fraction of the raw crawl."""
+    stages = [
+        ("Raw crawl", 1.00, "the scrape"),
+        ("Extraction", 0.62, "HTML to text"),
+        ("Language ID", 0.46, "target languages"),
+        ("Quality filter", 0.28, "rules + classifiers"),
+        ("Deduplication", 0.17, "fuzzy matches out"),
+        ("Decontamination", 0.16, "eval overlap out"),
+    ]
+
+    bar_w, gap = 88, 14
+    left, base_y, max_h = 24, 196, 150
+    width = left * 2 + len(stages) * bar_w + (len(stages) - 1) * gap
+    height = 268
+
+    body: list[str] = [
+        eyebrow(left, 26, "FRACTION OF THE RAW CRAWL THAT SURVIVES"),
+    ]
+    for i, (name, frac, note) in enumerate(stages):
+        x = left + i * (bar_w + gap)
+        h = max_h * frac
+        color = ACCENT if i < len(stages) - 1 else AMBER
+        body.append(
+            f'<rect x="{x}" y="{base_y - h:.1f}" width="{bar_w}" height="{h:.1f}" '
+            f'rx="6" fill="{color}" opacity="{0.35 + 0.65 * frac:.2f}"/>'
+        )
+        body.append(
+            f'<text x="{x + bar_w / 2}" y="{base_y - h - 8:.1f}" font-size="11" '
+            f'font-weight="700" text-anchor="middle" fill="{INK_SOFT}">'
+            f"{int(frac * 100)}%</text>"
+        )
+        body.append(
+            f'<text x="{x + bar_w / 2}" y="{base_y + 18}" font-size="10" '
+            f'font-weight="600" text-anchor="middle" fill="{INK}">{name}</text>'
+        )
+        # Notes alternate between two baselines so neighbors cannot collide.
+        body.append(
+            f'<text x="{x + bar_w / 2}" y="{base_y + 33 + (i % 2) * 13}" '
+            f'font-size="9" text-anchor="middle" fill="{MUTED}">{note}</text>'
+        )
+        if i < len(stages) - 1:
+            ax_ = x + bar_w + 2
+            body.append(
+                f'<path d="M {ax_} {base_y - 12} L {ax_ + gap - 4} {base_y - 12}" '
+                f'stroke="{RULE_STRONG}" stroke-width="1.4" '
+                f'marker-end="url(#funnelarrow)"/>'
+            )
+
+    body.append(arrow_marker(RULE_STRONG, "funnelarrow"))
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'
+        f"Fractions are illustrative; real pipelines report similar shapes. "
+        f"The corpus is a deliberate residue, not a sample.</text>"
+    )
+    return write_svg(
+        "data-funnel.svg",
+        svg_doc(
+            width,
+            height,
+            "The cleaning funnel from raw crawl to training corpus.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 6.4 — the mixture shifts toward quality during the final anneal.
+# ---------------------------------------------------------------------------
+
+
+def fig_mixture_annealing() -> Path:
+    """Plot: domain shares over training, with a quality shift at the end."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.2))
+
+    xs = [i / 2 for i in range(201)]  # 0..100% of training
+
+    def blend(x: float, before: float, after: float) -> float:
+        """Sigmoid switch from `before` to `after` centered at 90% of training."""
+        s = 1 / (1 + math.exp(-(x - 90) / 2.0))
+        return before + (after - before) * s
+
+    web = [blend(x, 0.62, 0.30) for x in xs]
+    multiling = [blend(x, 0.12, 0.08) for x in xs]
+    code = [blend(x, 0.14, 0.26) for x in xs]
+    math_share = [blend(x, 0.05, 0.16) for x in xs]
+    curated = [blend(x, 0.07, 0.20) for x in xs]
+
+    totals = [sum(v) for v in zip(web, multiling, code, math_share, curated)]
+    assert all(abs(t - 1.0) < 1e-9 for t in totals), "Shares must sum to one."
+
+    ax.stackplot(
+        xs,
+        web,
+        multiling,
+        code,
+        math_share,
+        curated,
+        labels=["filtered web", "multilingual", "code", "math", "curated"],
+        colors=[ACCENT, RULE_STRONG, VIOLET, BRICK, AMBER],
+        alpha=0.9,
+    )
+    ax.axvline(90, color=INK, linewidth=0.9, linestyle=(0, (3, 3)))
+    ax.text(89, 1.04, "anneal begins", fontsize=8, color=INK_SOFT, ha="right")
+
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 1.0)
+    ax.set_xlabel("training progress (%)")
+    ax.set_ylabel("share of the mixture")
+    ax.set_title("Spend the best data where the learning rate is smallest", loc="left")
+    ax.legend(loc="center left", ncols=2)
+    return save_plot(fig, "mixture-annealing.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 7.1 — the learning-rate schedule: warmup, then a long glide.
+# ---------------------------------------------------------------------------
+
+
+def fig_warmup_cosine() -> Path:
+    """Plot: linear warmup then cosine decay, with the WSD variant dashed."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.2))
+
+    peak, floor = 1.0, 0.1
+    warmup_end = 2.0
+    xs = [i / 4 for i in range(401)]  # 0..100% of training
+
+    def cosine(x: float) -> float:
+        if x <= warmup_end:
+            return peak * x / warmup_end
+        t = (x - warmup_end) / (100 - warmup_end)
+        return floor + (peak - floor) * 0.5 * (1 + math.cos(math.pi * t))
+
+    def wsd(x: float) -> float:
+        if x <= warmup_end:
+            return peak * x / warmup_end
+        if x <= 85:
+            return peak
+        return peak - (peak - 0.02) * (x - 85) / 15
+
+    ax.plot(xs, [cosine(x) for x in xs], color=ACCENT, linewidth=2.2, label="cosine")
+    ax.plot(
+        xs,
+        [wsd(x) for x in xs],
+        color=AMBER,
+        linewidth=1.8,
+        linestyle=(0, (5, 2)),
+        label="warmup-stable-decay",
+    )
+
+    ax.annotate("warmup", xy=(1.2, 0.55), xytext=(6, 0.32), fontsize=8, color=INK_SOFT)
+    ax.annotate(
+        "the glide: small steps,\nfinal polish, best data",
+        xy=(76, cosine(76)),
+        xytext=(50, 0.62),
+        fontsize=8,
+        color=ACCENT,
+        arrowprops={"arrowstyle": "-", "color": ACCENT, "linewidth": 0.8},
+    )
+    ax.annotate(
+        "branch anywhere\non the plateau",
+        xy=(60, 1.0),
+        xytext=(38, 1.06),
+        fontsize=8,
+        color=AMBER,
+    )
+
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 1.18)
+    ax.set_xlabel("training progress (%)")
+    ax.set_ylabel("learning rate (fraction of peak)")
+    ax.set_title("Climb, then glide", loc="left")
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower left", bbox_to_anchor=(0.12, 0.02))
+    return save_plot(fig, "warmup-cosine.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 7.2 — reading a loss curve: the grind, the spike, the divergence.
+# ---------------------------------------------------------------------------
+
+
+def fig_loss_spike() -> Path:
+    """Plot: a healthy power-law loss with a spike, its cure, and its bad end."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.4))
+
+    steps = [int(10 ** (2 + i * 0.02)) for i in range(151)]  # 100 .. 100k, log-spaced.
+
+    def healthy(s: int) -> float:
+        return 1.9 + 9.0 * s**-0.32
+
+    spike_at = 10_000
+
+    def spiky(s: int) -> float:
+        # A sharp bump localized (in log-space) around the spike step.
+        bump = 1.5 * math.exp(-((math.log10(s) - 4.0) ** 2) / 0.004)
+        return healthy(s) + bump
+
+    base = [spiky(s) for s in steps]
+    ax.plot(steps, base, color=ACCENT, linewidth=2.0, label="rewind + skip, resume")
+
+    diverge_steps = [s for s in steps if s >= spike_at]
+    diverged = [
+        healthy(spike_at) + 1.5 * (math.log10(s / spike_at)) ** 1.5 + 1.5
+        for s in diverge_steps
+    ]
+    ax.plot(
+        diverge_steps,
+        diverged,
+        color=BRICK,
+        linewidth=1.8,
+        linestyle=(0, (4, 2)),
+        label="untreated: diverges",
+    )
+
+    ax.annotate(
+        "the grind: a power law\n(straight on log axes)",
+        xy=(1_000, healthy(1_000)),
+        xytext=(210, 2.6),
+        fontsize=8,
+        color=INK_SOFT,
+    )
+    ax.annotate(
+        "spike",
+        xy=(spike_at, spiky(spike_at)),
+        xytext=(3_600, 5.1),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    ax.set_xscale("log")
+    ax.set_xlabel("training step (log scale)")
+    ax.set_ylabel("training loss")
+    ax.set_ylim(1.8, 6.2)
+    ax.set_title("Healthy is boring; everything else is a diagnosis", loc="left")
+    ax.grid(alpha=0.5, which="both")
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper right")
+    return save_plot(fig, "loss-spike.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 7.3 — the stability kit: each trick answers one named failure.
+# ---------------------------------------------------------------------------
+
+
+def fig_stability_map() -> Path:
+    """Diagram: symptom, mechanism, and fix for the four standard instabilities."""
+    rows = [
+        (
+            "Rare giant gradient",
+            "one outlier batch takes a wrecking step",
+            "Gradient clipping",
+        ),
+        (
+            "Output logits drift up",
+            "nothing pins the softmax normalizer",
+            "Z-loss",
+        ),
+        (
+            "Attention saturates",
+            "QK logits grow with scale",
+            "QK-norm",
+        ),
+        (
+            "Variance grows with depth",
+            "residual stream accumulates each block",
+            "Scaled initialization",
+        ),
+    ]
+
+    width, height = 680, 58 * len(rows) + 64
+    left_w, right_w, row_h = 190, 170, 40
+    left_x, mid_x = 20, 250
+    right_x = width - right_w - 20
+
+    body: list[str] = [
+        eyebrow(left_x, 28, "SYMPTOM"),
+        eyebrow(mid_x, 28, "MECHANISM"),
+        eyebrow(right_x, 28, "FIX", fill=ACCENT),
+        arrow_marker(RULE_STRONG, "stabarrow"),
+    ]
+
+    for i, (symptom, mechanism, fix) in enumerate(rows):
+        y = 44 + i * 58
+        body += token_box(
+            left_x,
+            y,
+            left_w,
+            row_h,
+            symptom,
+            fill="#ffffff",
+            text_fill=BRICK,
+            font_size=11.5,
+            weight=600,
+        )
+        body.append(
+            f'<text x="{mid_x}" y="{y + row_h / 2 + 4}" font-size="10.5" '
+            f'fill="{MUTED}">{mechanism}</text>'
+        )
+        body += token_box(
+            right_x,
+            y,
+            right_w,
+            row_h,
+            fix,
+            fill=ACCENT_SOFT,
+            stroke=ACCENT,
+            text_fill=ACCENT,
+            font_size=11.5,
+            weight=700,
+        )
+        body.append(
+            f'<path d="M {left_x + left_w + 6} {y + row_h / 2} '
+            f'L {mid_x - 12} {y + row_h / 2}" stroke="{RULE_STRONG}" '
+            f'stroke-width="1.2" marker-end="url(#stabarrow)"/>'
+        )
+
+    return write_svg(
+        "stability-map.svg",
+        svg_doc(
+            width,
+            height,
+            "Four training instabilities, their mechanisms, and their fixes.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 7.4 — a run is a process that resumes.
+# ---------------------------------------------------------------------------
+
+
+def fig_checkpoint_timeline() -> Path:
+    """Diagram: failures rewind the run to its last checkpoint; work is replayed."""
+    width, height = 680, 220
+    line_y = 120
+    x0, x1 = 30, 650
+    ckpt_xs = [30, 130, 230, 330, 430, 530, 630]
+    failures = [(285, 230), (585, 530)]  # (failure x, checkpoint rewound to)
+
+    body: list[str] = [
+        eyebrow(x0, 34, "ONE TRAINING RUN, WALL-CLOCK TIME"),
+        arrow_marker(INK_SOFT, "timearrow"),
+        f'<path d="M {x0} {line_y} L {x1 + 14} {line_y}" stroke="{INK_SOFT}" '
+        f'stroke-width="2" marker-end="url(#timearrow)"/>',
+    ]
+
+    # Replayed intervals sit under the line as shaded rework.
+    for fx, cx in failures:
+        body.append(
+            f'<rect x="{cx}" y="{line_y - 9}" width="{fx - cx}" height="18" '
+            f'fill="{BRICK}" opacity="0.16"/>'
+        )
+
+    for cx in ckpt_xs:
+        body.append(
+            f'<path d="M {cx} {line_y - 7} L {cx + 7} {line_y} L {cx} {line_y + 7} '
+            f'L {cx - 7} {line_y} Z" fill="{ACCENT}"/>'
+        )
+    body.append(
+        f'<text x="{ckpt_xs[0]}" y="{line_y + 28}" font-size="10" '
+        f'fill="{ACCENT}">checkpoints</text>'
+    )
+
+    for fx, cx in failures:
+        body.append(
+            f'<text x="{fx}" y="{line_y + 5}" font-size="16" font-weight="700" '
+            f'text-anchor="middle" fill="{BRICK}">&#215;</text>'
+        )
+        body.append(
+            f'<text x="{fx}" y="{line_y - 42}" font-size="10" text-anchor="middle" '
+            f'fill="{BRICK}">failure</text>'
+        )
+        # The rewind arc from the failure back to the last checkpoint.
+        body.append(
+            f'<path d="M {fx} {line_y - 14} Q {(fx + cx) / 2} {line_y - 52}, '
+            f'{cx + 4} {line_y - 14}" fill="none" stroke="{BRICK}" '
+            f'stroke-width="1.4" stroke-dasharray="4 3" '
+            f'marker-end="url(#rewindarrow)"/>'
+        )
+    body.append(arrow_marker(BRICK, "rewindarrow"))
+
+    body.append(
+        f'<text x="{(230 + 285) / 2}" y="{line_y + 28}" font-size="10" '
+        f'text-anchor="middle" fill="{BRICK}">replayed work</text>'
+    )
+    body.append(
+        f'<text x="{width / 2}" y="{height - 30}" font-size="10.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'
+        f"Each failure destroys everything since the last checkpoint.</text>"
+    )
+    body.append(
+        f'<text x="{width / 2}" y="{height - 14}" font-size="10.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'
+        f"Cadence is a bet: rare checkpoints risk hours, frequent ones "
+        f"throttle the run with writes.</text>"
+    )
+    return write_svg(
+        "checkpoint-timeline.svg",
+        svg_doc(
+            width,
+            height,
+            "A training timeline with failures rewinding to checkpoints.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 8.1 — the training-state memory budget.
+# ---------------------------------------------------------------------------
+
+
+def fig_memory_budget() -> Path:
+    """Plot: 16 bytes of training state per parameter, and what that implies."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 2.9))
+
+    segments = [
+        ("weights (bf16)", 2, ACCENT),
+        ("gradients (bf16)", 2, VIOLET),
+        ("master weights (fp32)", 4, AMBER),
+        ("Adam moment 1 (fp32)", 4, "#b98a3a"),
+        ("Adam moment 2 (fp32)", 4, "#cfa96b"),
+    ]
+    total = sum(s for _, s, _ in segments)
+    assert total == 16, "Mixed-precision AdamW carries 16 bytes per parameter."
+
+    left = 0.0
+    for i, (name, size, color) in enumerate(segments):
+        ax.barh(0, size, left=left, height=0.5, color=color)
+        mid = left + size / 2
+        if size >= 4:
+            ax.text(
+                mid,
+                0,
+                f"{name}\n{size} B",
+                ha="center",
+                va="center",
+                fontsize=7.5,
+                color="#ffffff",
+            )
+        else:
+            # Narrow segments carry only the size; the name sits above,
+            # staggered so neighbors cannot collide.
+            ax.text(
+                mid,
+                0,
+                f"{size} B",
+                ha="center",
+                va="center",
+                fontsize=7.5,
+                color="#ffffff",
+            )
+            ax.text(
+                mid,
+                0.42 + (i % 2) * 0.24,
+                name,
+                ha="center",
+                va="bottom",
+                fontsize=7.5,
+                color=color,
+            )
+        left += size
+
+    # Activations ride on top, dashed because their size is configuration-bound.
+    ax.barh(
+        0,
+        4,
+        left=left,
+        height=0.5,
+        color="none",
+        edgecolor=MUTED,
+        linestyle=(0, (4, 3)),
+        linewidth=1.2,
+    )
+    ax.text(
+        left + 2,
+        0,
+        "+ activations\n(varies)",
+        ha="center",
+        va="center",
+        fontsize=7.5,
+        color=MUTED,
+    )
+
+    ax.annotate(
+        "optimizer state: 12 of the 16 bytes",
+        xy=(10, 0.28),
+        xytext=(7.2, 0.72),
+        fontsize=8,
+        color=INK_SOFT,
+        arrowprops={"arrowstyle": "-", "color": MUTED, "linewidth": 0.8},
+    )
+    ax.text(
+        0,
+        -0.72,
+        "At 70B parameters: 16 B/param = 1.1 TB of state, before activations - "
+        "fourteen 80 GB GPUs just to hold the problem.",
+        fontsize=8,
+        color=INK_SOFT,
+    )
+
+    ax.set_xlim(0, 20)
+    ax.set_ylim(-1.0, 1.0)
+    ax.set_yticks([])
+    ax.set_xlabel("bytes per parameter during mixed-precision AdamW training")
+    ax.set_title(
+        "The weights are the smallest slice of their own training run", loc="left"
+    )
+    ax.spines["left"].set_visible(False)
+    return save_plot(fig, "memory-budget.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 8.2 — the ZeRO ladder: shard the next-largest redundancy.
+# ---------------------------------------------------------------------------
+
+
+def fig_zero_stages() -> Path:
+    """Diagram: what each of four GPUs holds under DP and ZeRO stages 1-3."""
+    n_gpus = 4
+    scale = 4.2  # Pixels per byte-per-parameter.
+    heights = {"P": 2 * scale, "G": 2 * scale, "O": 12 * scale}
+    colors = {"P": ACCENT, "G": VIOLET, "O": AMBER}
+    rows = [
+        ("Plain DP", (False, False, False), "16 / GPU"),
+        ("ZeRO-1", (False, False, True), "4 + 12/N"),
+        ("ZeRO-2", (False, True, True), "2 + 14/N"),
+        ("ZeRO-3 (FSDP)", (True, True, True), "16/N"),
+    ]
+
+    row_h = 94
+    width, height = 690, 56 + row_h * len(rows)
+    gpu_x0, gpu_step = 168, 108
+    bar_w, bar_gap = 22, 6
+
+    body: list[str] = []
+    for g in range(n_gpus):
+        body.append(
+            eyebrow(gpu_x0 + g * gpu_step, 30, f"GPU {g}"),
+        )
+    body.append(
+        f'<text x="{width - 20}" y="30" font-size="11" font-weight="700" '
+        f'text-anchor="end" fill="{MUTED}" letter-spacing="1">BYTES/PARAM</text>'
+    )
+
+    for r, (name, sharded_flags, note) in enumerate(rows):
+        base = 52 + r * row_h + 70
+        body.append(
+            f'<text x="20" y="{base - 28}" font-size="12" font-weight="700" '
+            f'fill="{INK}">{name}</text>'
+        )
+        for g in range(n_gpus):
+            for b, part in enumerate(("P", "G", "O")):
+                sharded = sharded_flags[b]
+                h = heights[part] / (n_gpus if sharded else 1)
+                h = max(h, 5)
+                x = gpu_x0 + g * gpu_step + b * (bar_w + bar_gap)
+                body.append(
+                    f'<rect x="{x}" y="{base - h:.1f}" width="{bar_w}" '
+                    f'height="{h:.1f}" rx="2" fill="{colors[part]}" '
+                    f'opacity="{0.45 if sharded else 0.95}"/>'
+                )
+                if r == 0 and g == 0:
+                    body.append(
+                        f'<text x="{x + bar_w / 2}" y="{base + 13}" font-size="9" '
+                        f'text-anchor="middle" fill="{colors[part]}">{part}</text>'
+                    )
+        body.append(
+            f'<text x="{width - 20}" y="{base - 24}" font-size="11" '
+            f'text-anchor="end" fill="{INK_SOFT}" font-variant="tabular-nums">'
+            f"{note}</text>"
+        )
+
+    body.append(
+        f'<text x="20" y="{height - 14}" font-size="10.5" fill="{MUTED}" '
+        f'font-style="italic">P = parameters, G = gradients, O = optimizer state. '
+        f"Faded bars are 1/N shards; every stage computes the identical "
+        f"update.</text>"
+    )
+    return write_svg(
+        "zero-stages.svg",
+        svg_doc(
+            width,
+            height,
+            "Per-GPU memory under data parallelism and the three ZeRO stages.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 8.3 — tensor parallelism vs pipeline parallelism.
+# ---------------------------------------------------------------------------
+
+
+def fig_tensor_pipeline() -> Path:
+    """Diagram: split every layer's matrices, or split the stack of layers."""
+    gpu_colors = [ACCENT, VIOLET, AMBER, BRICK]
+    width, height = 700, 320
+    layer_w, layer_h, layer_gap = 220, 46, 14
+    top = 64
+
+    body: list[str] = [
+        eyebrow(40, 36, "TENSOR PARALLEL: SPLIT EVERY LAYER"),
+        eyebrow(400, 36, "PIPELINE PARALLEL: SPLIT THE STACK"),
+        arrow_marker(RULE_STRONG, "tparrow"),
+    ]
+
+    # Left: three layers, each sliced vertically across the four GPUs.
+    for layer in range(3):
+        y = top + layer * (layer_h + layer_gap)
+        slice_w = layer_w / 4
+        for g in range(4):
+            body.append(
+                f'<rect x="{40 + g * slice_w:.1f}" y="{y}" width="{slice_w:.1f}" '
+                f'height="{layer_h}" fill="{gpu_colors[g]}" opacity="0.75" '
+                f'stroke="#ffffff" stroke-width="1.5"/>'
+            )
+        body.append(
+            f'<text x="{40 + layer_w + 12}" y="{y + layer_h / 2 + 4}" '
+            f'font-size="10" fill="{BRICK}">all-reduce</text>'
+        )
+        if layer < 2:
+            body.append(
+                f'<path d="M {40 + layer_w / 2} {y + layer_h + 2} '
+                f'L {40 + layer_w / 2} {y + layer_h + layer_gap - 3}" '
+                f'stroke="{RULE_STRONG}" stroke-width="1.4" '
+                f'marker-end="url(#tparrow)"/>'
+            )
+    body.append(
+        f'<text x="40" y="{top + 3 * (layer_h + layer_gap) + 18}" font-size="10.5" '
+        f'fill="{MUTED}">Every GPU touches every layer; communication</text>'
+    )
+    body.append(
+        f'<text x="40" y="{top + 3 * (layer_h + layer_gap) + 32}" font-size="10.5" '
+        f'fill="{MUTED}">on every layer&#8217;s critical path &#8594; needs NVLink.</text>'
+    )
+
+    # Right: twelve blocks grouped into four contiguous pipeline stages.
+    px, stage_w, block_h = 400, 240, 14
+    for g in range(4):
+        stage_y = top + g * 3 * (block_h + 3) + g * 8
+        for b in range(3):
+            y = stage_y + b * (block_h + 3)
+            body.append(
+                f'<rect x="{px}" y="{y}" width="{stage_w}" height="{block_h}" '
+                f'rx="3" fill="{gpu_colors[g]}" opacity="0.75"/>'
+            )
+        body.append(
+            f'<text x="{px + stage_w + 10}" y="{stage_y + 22}" font-size="10" '
+            f'fill="{gpu_colors[g]}">GPU {g}</text>'
+        )
+        if g < 3:
+            handoff_y = stage_y + 3 * (block_h + 3) + 1
+            body.append(
+                f'<path d="M {px + stage_w / 2} {handoff_y - 2} '
+                f'L {px + stage_w / 2} {handoff_y + 5}" stroke="{INK_SOFT}" '
+                f'stroke-width="1.4" marker-end="url(#tparrow)"/>'
+            )
+    body.append(
+        f'<text x="{px}" y="{top + 12 * (block_h + 3) + 32 + 18}" font-size="10.5" '
+        f'fill="{MUTED}">One activation handoff per boundary &#8594; crosses</text>'
+    )
+    body.append(
+        f'<text x="{px}" y="{top + 12 * (block_h + 3) + 32 + 32}" font-size="10.5" '
+        f'fill="{MUTED}">nodes happily, but idles while filling and draining.</text>'
+    )
+
+    return write_svg(
+        "tensor-pipeline.svg",
+        svg_doc(
+            width,
+            height,
+            "Tensor parallelism slices within layers; pipeline parallelism slices between them.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 8.4 — 3D parallelism follows the hardware hierarchy.
+# ---------------------------------------------------------------------------
+
+
+def fig_parallelism_3d() -> Path:
+    """Diagram: TP inside nodes, PP across nodes, DP across model replicas."""
+    width, height = 690, 330
+    stage_w, stage_h, stage_gap = 132, 74, 16
+    left = 96
+
+    body: list[str] = [arrow_marker(RULE_STRONG, "pararrow")]
+
+    def replica(y: float, label: str) -> None:
+        body.append(
+            f'<text x="20" y="{y + stage_h / 2 + 4}" font-size="11" '
+            f'font-weight="700" fill="{INK}">{label}</text>'
+        )
+        for s in range(4):
+            x = left + s * (stage_w + stage_gap)
+            body.append(
+                f'<rect x="{x}" y="{y}" width="{stage_w}" height="{stage_h}" rx="8" '
+                f'fill="#ffffff" stroke="{RULE_STRONG}"/>'
+            )
+            body.append(
+                f'<text x="{x + 12}" y="{y + 20}" font-size="10.5" '
+                f'font-weight="600" fill="{INK}">stage {s}</text>'
+            )
+            # Eight GPU dots: one node running 8-way tensor parallelism.
+            for d in range(8):
+                dx = x + 14 + (d % 4) * 16
+                dy = y + 34 + (d // 4) * 16
+                body.append(
+                    f'<circle cx="{dx}" cy="{dy}" r="5.5" fill="{ACCENT}" '
+                    f'opacity="{0.55 + 0.05 * d}"/>'
+                )
+            body.append(
+                f'<text x="{x + 82}" y="{y + 52}" font-size="9" '
+                f'fill="{MUTED}">TP &#215; 8</text>'
+            )
+            if s < 3:
+                ax_ = x + stage_w + 2
+                body.append(
+                    f'<path d="M {ax_} {y + stage_h / 2} '
+                    f'L {ax_ + stage_gap - 6} {y + stage_h / 2}" '
+                    f'stroke="{RULE_STRONG}" stroke-width="1.4" '
+                    f'marker-end="url(#pararrow)"/>'
+                )
+
+    body.append(eyebrow(left, 34, "PIPELINE ACROSS NODES (ONE MODEL INSTANCE)"))
+    replica(48, "replica 0")
+    replica(48 + stage_h + 44, "replica 1")
+
+    mid_y = 48 + stage_h + 26
+    body.append(
+        f'<text x="{left}" y="{mid_y}" font-size="10.5" fill="{VIOLET}" '
+        f'font-weight="600">data parallelism: replicas sync gradients once per step</text>'
+    )
+
+    dots_y = 48 + 2 * stage_h + 44 + 24
+    body.append(
+        f'<text x="{left}" y="{dots_y}" font-size="13" fill="{MUTED}">&#8942;</text>'
+    )
+    body.append(
+        f'<text x="{left + 20}" y="{dots_y}" font-size="10.5" fill="{MUTED}">'
+        f"&#215; 128 replicas &#8594; 8 (TP) &#183; 16 (PP) &#183; 128 (DP) "
+        f"&#8776; 16k GPUs</text>"
+    )
+    body.append(
+        f'<text x="{left}" y="{dots_y + 26}" font-size="10.5" fill="{MUTED}" '
+        f'font-style="italic">Chattiest parallelism, fastest links: TP inside the '
+        f"node, PP across nodes, DP across everything.</text>"
+    )
+    return write_svg(
+        "parallelism-3d.svg",
+        svg_doc(
+            width,
+            height,
+            "Tensor, pipeline, and data parallelism composed across a cluster.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 8.5 — the three collectives, and the identity relating them.
+# ---------------------------------------------------------------------------
+
+
+def fig_collectives() -> Path:
+    """Diagram: all-reduce, reduce-scatter, and all-gather on four GPUs."""
+    width, height = 690, 300
+    cell, cgap = 15, 2
+    panel_xs = [30, 262, 494]
+    titles = ["ALL-REDUCE", "REDUCE-SCATTER", "ALL-GATHER"]
+    subtitles = [
+        "everyone gets the full sum",
+        "each keeps one summed shard",
+        "shards reassemble everywhere",
+    ]
+
+    body: list[str] = [arrow_marker(INK_SOFT, "collarrow")]
+
+    def grid(x0: float, y0: float, filled: str) -> None:
+        """Draw 4 GPUs (rows) each holding 4 cells (columns)."""
+        for g in range(4):
+            for c in range(4):
+                x = x0 + c * (cell + cgap)
+                y = y0 + g * (cell + cgap)
+                if filled == "own-values":
+                    fill, opacity = ACCENT, 0.3
+                elif filled == "sum-all":
+                    fill, opacity = ACCENT, 0.95
+                elif filled == "sum-shard":
+                    fill, opacity = (ACCENT, 0.95) if c == g else (RULE, 0.9)
+                elif filled == "shard-only":
+                    fill, opacity = (ACCENT, 0.55) if c == g else (RULE, 0.9)
+                else:
+                    raise AssertionError(f"Unknown grid fill mode: {filled!r}.")
+                body.append(
+                    f'<rect x="{x:.1f}" y="{y:.1f}" width="{cell}" height="{cell}" '
+                    f'rx="2" fill="{fill}" opacity="{opacity}"/>'
+                )
+
+    before_y, after_y = 88, 186
+    modes = [
+        ("own-values", "sum-all"),
+        ("own-values", "sum-shard"),
+        ("shard-only", "sum-all"),
+    ]
+    for p, (x0, title, subtitle, (before, after)) in enumerate(
+        zip(panel_xs, titles, subtitles, modes)
+    ):
+        body.append(eyebrow(x0, 36, title, fill=ACCENT if p == 0 else INK_SOFT))
+        body.append(
+            f'<text x="{x0}" y="52" font-size="10" fill="{MUTED}">{subtitle}</text>'
+        )
+        body.append(
+            f'<text x="{x0 - 0}" y="{before_y - 8}" font-size="9" '
+            f'fill="{MUTED}">before</text>'
+        )
+        grid(x0, before_y, before)
+        gx = x0 + 2 * (cell + cgap) - 1
+        body.append(
+            f'<path d="M {gx} {before_y + 4 * (cell + cgap) + 6} '
+            f'L {gx} {after_y - 10}" stroke="{INK_SOFT}" stroke-width="1.4" '
+            f'marker-end="url(#collarrow)"/>'
+        )
+        grid(x0, after_y, after)
+        body.append(
+            f'<text x="{x0}" y="{after_y + 4 * (cell + cgap) + 16}" font-size="9" '
+            f'fill="{MUTED}">after</text>'
+        )
+
+    # GPU row labels on the leftmost panel.
+    for g in range(4):
+        body.append(
+            f'<text x="{panel_xs[0] - 8}" y="{before_y + g * (cell + cgap) + 11}" '
+            f'font-size="8.5" text-anchor="end" fill="{MUTED}">g{g}</text>'
+        )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" '
+        f'text-anchor="middle" fill="{INK_SOFT}" font-style="italic">'
+        f"all-reduce = reduce-scatter + all-gather &#8212; each half moves about "
+        f"the array size per GPU, whatever the cluster size.</text>"
+    )
+    return write_svg(
+        "collectives.svg",
+        svg_doc(
+            width,
+            height,
+            "The three collective operations on four GPUs, before and after.",
+            body,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 9.1 — the power-law frontier across model sizes.
+# ---------------------------------------------------------------------------
+
+
+def fig_power_laws() -> Path:
+    """Plot: each model size rides the loss frontier, then peels off."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    computes = [10 ** (i * 0.05) for i in range(161)]  # 1 .. 1e8.
+
+    def frontier(c: float) -> float:
+        return 5.5 * c**-0.07
+
+    sizes = [
+        ("small", 3.6, RULE_STRONG),
+        ("10x", 2.9, MUTED),
+        ("100x", 2.35, VIOLET),
+        ("1000x", 1.9, ACCENT),
+    ]
+
+    p = 10  # Smooth-max sharpness; higher hugs the corner tighter.
+    for name, floor, color in sizes:
+        losses = [(frontier(c) ** p + floor**p) ** (1 / p) for c in computes]
+        ax.plot(computes, losses, color=color, linewidth=1.9, label=f"{name} params")
+
+    ax.plot(
+        computes,
+        [frontier(c) for c in computes],
+        color=INK,
+        linewidth=1.1,
+        linestyle=(0, (5, 3)),
+    )
+    ax.annotate(
+        "the frontier: straight on log-log axes",
+        xy=(3e4, frontier(3e4)),
+        xytext=(2.3e2, 1.65),
+        fontsize=8,
+        color=INK_SOFT,
+    )
+    ax.annotate(
+        "each size peels off when\nit has learned all it can hold",
+        xy=(2.4e3, 2.94),
+        xytext=(1.1e4, 3.6),
+        fontsize=8,
+        color=MUTED,
+        arrowprops={"arrowstyle": "-", "color": MUTED, "linewidth": 0.8},
+    )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_yticks([2, 3, 4, 5])
+    ax.set_yticklabels(["2", "3", "4", "5"])
+    ax.set_xlabel("training compute (relative, log scale)")
+    ax.set_ylabel("pretraining loss (log scale)")
+    ax.set_title("Loss is bought at a multiplied price", loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper right")
+    return save_plot(fig, "power-laws.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 9.2 — the isoFLOP sweep behind the Chinchilla rule.
+# ---------------------------------------------------------------------------
+
+
+def fig_chinchilla_isoflop() -> Path:
+    """Plot: U-shaped loss vs model size at fixed budgets; minima trace the rule."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    budgets = [
+        (6e8, 2.90, RULE_STRONG),
+        (2.4e9, 2.62, MUTED),
+        (1e10, 2.38, VIOLET),
+        (4e10, 2.18, ACCENT),
+    ]
+    curvature = 0.55
+
+    ns = [10 ** (8 + i * 0.025) for i in range(121)]  # 1e8 .. 1e11.
+    minima_x, minima_y = [], []
+    for n_opt, l_min, color in budgets:
+        losses = [l_min + curvature * (math.log10(n / n_opt)) ** 2 for n in ns]
+        ax.plot(ns, losses, color=color, linewidth=1.9)
+        minima_x.append(n_opt)
+        minima_y.append(l_min)
+
+    ax.plot(
+        minima_x,
+        minima_y,
+        color=AMBER,
+        linewidth=1.4,
+        linestyle=(0, (5, 3)),
+        marker="o",
+        markersize=4.5,
+    )
+    ax.annotate(
+        "compute-optimal frontier:\nabout 20 tokens per parameter",
+        xy=(minima_x[2], minima_y[2]),
+        xytext=(2.5e8, 2.14),
+        fontsize=8,
+        color=AMBER,
+        arrowprops={"arrowstyle": "-", "color": AMBER, "linewidth": 0.8},
+    )
+    ax.annotate(
+        "too small:\nunderfits",
+        xy=(1.6e8, 3.05),
+        fontsize=8,
+        color=MUTED,
+    )
+    ax.annotate(
+        "too big:\nundertrained",
+        xy=(2.6e10, 3.05),
+        fontsize=8,
+        color=MUTED,
+    )
+    ax.text(
+        1.15e8,
+        2.255,
+        "each curve: one fixed compute budget",
+        fontsize=8,
+        color=INK_SOFT,
+    )
+
+    ax.set_xscale("log")
+    ax.set_xlabel("model size (parameters, log scale)")
+    ax.set_ylabel("final loss at fixed compute")
+    ax.set_ylim(2.05, 3.25)
+    ax.set_title("Fix the budget, sweep the split", loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    return save_plot(fig, "chinchilla-isoflop.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 9.3 — folding serving cost into the scaling objective.
+# ---------------------------------------------------------------------------
+
+
+def fig_inference_aware() -> Path:
+    """Plot: lifetime compute vs model size; more serving shifts the optimum left."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    sizes = [10 ** (-1 + i * 0.0125) for i in range(161)]  # 0.1x .. 10x.
+
+    def train_cost(n: float) -> float:
+        # Iso-quality training compute, minimized at the Chinchilla point n = 1.
+        return math.exp(0.35 * math.log(n) ** 2)
+
+    volumes = [
+        ("serving ~ 0", 0.0, RULE_STRONG),
+        ("moderate serving", 0.8, VIOLET),
+        ("heavy serving", 4.0, ACCENT),
+    ]
+    for name, k, color in volumes:
+        totals = [train_cost(n) + k * n for n in sizes]
+        ax.plot(sizes, totals, color=color, linewidth=1.9, label=name)
+        best = min(range(len(sizes)), key=lambda i: totals[i])
+        ax.plot([sizes[best]], [totals[best]], "o", color=color, markersize=5)
+
+    ax.axvline(1.0, color=AMBER, linewidth=1.1, linestyle=(0, (5, 3)))
+    ax.text(
+        1.06, 7.5, "Chinchilla point", fontsize=8, color=AMBER, rotation=90, va="bottom"
+    )
+    ax.annotate(
+        "the more you will serve,\nthe smaller you should build",
+        xy=(0.42, train_cost(0.42) + 4.0 * 0.42),
+        xytext=(0.115, 5.2),
+        fontsize=8,
+        color=ACCENT,
+        arrowprops={"arrowstyle": "-", "color": ACCENT, "linewidth": 0.8},
+    )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("model size at fixed target quality (relative to Chinchilla-optimal)")
+    ax.set_ylabel("lifetime compute (relative)")
+    ax.set_title("Training is paid once; serving is paid per token", loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper left")
+    return save_plot(fig, "inference-aware.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 9.4 — the same skill under an abrupt metric and a smooth one.
+# ---------------------------------------------------------------------------
+
+
+def fig_emergence_metric() -> Path:
+    """Plot: exact-match jumps at a threshold while a per-token metric climbs."""
+    import math
+
+    style_plot()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 3.0), sharex=True)
+
+    scales = [10 ** (i * 0.05) for i in range(81)]  # 1 .. 1e4.
+
+    exact = [92 / (1 + math.exp(-(math.log10(s) - 2.6) * 6)) for s in scales]
+    smooth = [8 + 21 * math.log10(s) for s in scales]
+
+    ax1.plot(scales, exact, color=BRICK, linewidth=2.0)
+    ax1.set_title("All-or-nothing metric", loc="left")
+    ax1.set_ylabel("exact-match accuracy (%)")
+    ax1.annotate(
+        '"emergence"',
+        xy=(10**2.6, 46),
+        xytext=(3.5, 60),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    ax2.plot(scales, smooth, color=ACCENT, linewidth=2.0)
+    ax2.set_title("Smooth per-token metric", loc="left")
+    ax2.set_ylabel("token-level score")
+    ax2.annotate(
+        "same skill, steady climb",
+        xy=(10**2.0, 8 + 21 * 2.0),
+        xytext=(2.4, 72),
+        fontsize=8,
+        color=ACCENT,
+        arrowprops={"arrowstyle": "-", "color": ACCENT, "linewidth": 0.8},
+    )
+
+    for ax in (ax1, ax2):
+        ax.set_xscale("log")
+        ax.set_xlabel("model scale (log)")
+        ax.set_ylim(0, 100)
+        ax.grid(alpha=0.5, which="major")
+        ax.set_axisbelow(True)
+
+    fig.suptitle(
+        "The jump lives in the metric, not only in the model",
+        x=0.02,
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    return save_plot(fig, "emergence-metric.svg")
+
+
+# ---------------------------------------------------------------------------
 # The cover and the icons.
 #
 # One motif carries the book's identity: a row of context tokens fading with
@@ -2398,6 +3663,23 @@ FIGURES = (
     fig_attention_sharing,
     fig_moe,
     fig_config_tour,
+    fig_prediction_compression,
+    fig_pretraining_mix,
+    fig_data_funnel,
+    fig_mixture_annealing,
+    fig_warmup_cosine,
+    fig_loss_spike,
+    fig_stability_map,
+    fig_checkpoint_timeline,
+    fig_memory_budget,
+    fig_zero_stages,
+    fig_tensor_pipeline,
+    fig_parallelism_3d,
+    fig_collectives,
+    fig_power_laws,
+    fig_chinchilla_isoflop,
+    fig_inference_aware,
+    fig_emergence_metric,
     fig_cover,
     fig_icon,
     fig_touch_icon,

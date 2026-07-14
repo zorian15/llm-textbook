@@ -652,6 +652,528 @@ _QUIZZES: dict[str, tuple[Question, ...]] = {
             ),
         ),
     ),
+    "pretraining-objective": (
+        Question(
+            prompt=(
+                "Model A (32k-token vocabulary) reports perplexity 9; model B "
+                "(128k-token vocabulary) reports perplexity 12 on the same "
+                "text. What can you conclude about which predicts the text "
+                "better?"
+            ),
+            options=(
+                "Model A is better, since 9 is lower than 12.",
+                "Nothing yet: perplexity is per token, and B's larger "
+                "vocabulary packs more text into each token, raising "
+                "per-token uncertainty; renormalize both to bits per byte of "
+                "raw text before comparing.",
+                "Model B is better, because larger vocabularies always mean "
+                "stronger models.",
+                "Nothing ever, because perplexity is not related to "
+                "prediction quality.",
+            ),
+            answer=1,
+            explanation=(
+                "A tokenizer choice changes the unit of measurement. Each of "
+                "B's tokens carries more text, so its per-token perplexity is "
+                "naturally higher even if it compresses the text better "
+                "overall. Converting both models' total cross-entropy to bits "
+                "per byte of the same underlying text removes the tokenizer "
+                "from the comparison - which is exactly the compression view "
+                "of the loss."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Beyond wasting compute on repeats, why does deduplication "
+                "measurably improve a pretrained model?"
+            ),
+            options=(
+                "It shrinks the vocabulary the tokenizer needs.",
+                "Duplicated documents act as an accidental upweighting of "
+                "whatever happens to be mirrored, distorting the intended "
+                "mixture, and repeated passages are far more likely to be "
+                "memorized and regurgitated verbatim.",
+                "It guarantees the model can no longer memorize any training " "text.",
+                "It makes the loss curve smoother by removing hard examples.",
+            ),
+            answer=1,
+            explanation=(
+                "Lee et al. (2022) showed near-duplicate text both skews the "
+                "effective data distribution and drives verbatim memorization, "
+                "which is a privacy and quality problem. Dedup reduces "
+                "memorization sharply but does not eliminate it - unique text "
+                "seen once can still be memorized, especially by large models "
+                "late in training."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why do pretraining teams shift the data mixture toward their "
+                "highest-quality sources specifically during the final "
+                "learning-rate decay, rather than spreading that data evenly?"
+            ),
+            options=(
+                "Because the data loader can only handle one mixture change "
+                "per run.",
+                "Because early training would overfit the high-quality data.",
+                "Because the last updates, taken at the smallest learning "
+                "rates, are the ones least likely to be overwritten by later "
+                "training - the model's final polish comes from whatever it "
+                "sees there, so the scarcest, best tokens are spent there.",
+                "Because high-quality data requires a lower learning rate to "
+                "parse correctly.",
+            ),
+            answer=2,
+            explanation=(
+                "Annealing pairs the mixture shift with the learning-rate "
+                "decay deliberately: nothing comes after the anneal to disturb "
+                "what it teaches. Llama 3 and MiniCPM both report this "
+                "recipe. It is also why a mid-training checkpoint understates "
+                "final model quality - the anneal's gains have not happened "
+                "yet."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Your corpus is short of fresh tokens for the planned run. "
+                "What does the evidence on repeating data say?"
+            ),
+            options=(
+                "Any repetition causes overfitting and must be avoided.",
+                "Repetition is free: forty epochs behave like fresh data.",
+                "Up to roughly four epochs over a source costs little "
+                "compared to fresh data; after that, returns from further "
+                "repeats decay rapidly toward zero.",
+                "Repetition helps only for code, never for prose.",
+            ),
+            answer=2,
+            explanation=(
+                "Muennighoff et al. (2023) fit scaling laws in the "
+                "data-constrained regime: a few epochs are nearly as good as "
+                "unique tokens, then value decays sharply. This is why small "
+                "high-quality sources are routinely upsampled several times "
+                "per web epoch, and why the 'running out of data' question is "
+                "about fresh-token supply, not literal exhaustion."
+            ),
+        ),
+        Question(
+            prompt=(
+                "What is the precise sense in which a language model 'is' a "
+                "compressor?"
+            ),
+            options=(
+                "Its weights are smaller than its training data, so training "
+                "compressed the corpus into the weights.",
+                "Its next-token distribution can drive an arithmetic coder "
+                "that spends exactly minus log2 p(x) bits on each actual "
+                "token x, so lower cross-entropy is literally a shorter "
+                "encoding of the corpus.",
+                "It removes stopwords and redundancy from text it generates.",
+                "It stores a zip archive of frequent phrases in its KV cache.",
+            ),
+            answer=1,
+            explanation=(
+                "The equivalence is mechanical, not metaphorical: any "
+                "predictor plus arithmetic coding is a lossless compressor, "
+                "and the achieved file size is the model's cross-entropy on "
+                "that text. Deletang et al. (2024) demonstrate strong LLMs "
+                "out-compressing gzip this way. The weights-are-compression "
+                "reading (option one) is a looser, different claim - the "
+                "coding argument is the one to give in an interview."
+            ),
+        ),
+    ),
+    "training-dynamics": (
+        Question(
+            prompt=(
+                "Why does every large training run begin with learning-rate "
+                "warmup rather than starting at the peak rate?"
+            ),
+            options=(
+                "To let the GPUs reach thermal equilibrium before full load.",
+                "Because early training combines random weights, huge "
+                "unrepresentative gradients, and Adam statistics estimated "
+                "from almost no samples - full-size steps taken on that "
+                "garbage can damage the run before it starts; tiny steps buy "
+                "time for the optimizer's estimates to become trustworthy.",
+                "To keep the loss curve smooth for monitoring dashboards.",
+                "Because the data loader shuffles poorly in the first epoch.",
+            ),
+            answer=1,
+            explanation=(
+                "Adam divides each update by a running estimate of gradient "
+                "magnitude; with a handful of samples that denominator is "
+                "noise, so effective step sizes are erratic exactly when "
+                "gradients are largest. Warmup is insurance against those "
+                "first few thousand steps. Its length is measured in steps, "
+                "not epochs - typically a fraction of a percent of the run."
+            ),
+        ),
+        Question(
+            prompt=(
+                "What does the critical batch size mark, and what happens if "
+                "you train beyond it?"
+            ),
+            options=(
+                "The largest batch that fits in GPU memory; beyond it the run "
+                "crashes.",
+                "The point where gradient noise stops being the bottleneck: "
+                "past it, doubling the batch buys almost no reduction in "
+                "steps needed, so you spend twice the compute per step for "
+                "the same progress.",
+                "The batch size at which the learning rate must be halved.",
+                "The minimum batch needed for batch normalization statistics.",
+            ),
+            answer=1,
+            explanation=(
+                "McCandlish et al. (2018) estimate it from the gradient noise "
+                "scale: while noise dominates, bigger batches let you take "
+                "proportionally bigger steps (the linear scaling rule); once "
+                "the gradient estimate is already accurate, more averaging is "
+                "waste. Since the noise scale grows as the loss falls, large "
+                "runs often ramp the batch size up during training."
+            ),
+        ),
+        Question(
+            prompt=(
+                "During a large run the loss spikes sharply. The team rewinds "
+                "to a checkpoint and skips a few hundred batches. Replaying "
+                "the same batches from a different checkpoint causes no "
+                "spike. What does this reveal about spikes?"
+            ),
+            options=(
+                "The skipped batches contained corrupted data that must be "
+                "removed from the corpus.",
+                "The spike was triggered by a collision of a particular model "
+                "state with a particular batch, not by bad data alone - which "
+                "is why skip-and-resume works and why spikes are so hard to "
+                "reproduce or predict.",
+                "The checkpoint file was corrupted on disk.",
+                "The learning rate schedule restarted from zero.",
+            ),
+            answer=1,
+            explanation=(
+                "PaLM's team documented exactly this: the same data replayed "
+                "from a different state trained fine, implying the "
+                "state-times-batch interaction, not the batch, is the "
+                "trigger. This is also why spike prevention is about damping "
+                "mechanisms (clipping, z-loss, QK-norm) rather than data "
+                "cleaning."
+            ),
+        ),
+        Question(
+            prompt="What problem does z-loss solve in large-scale training?",
+            options=(
+                "It prevents the attention matrix from becoming singular.",
+                "Cross-entropy is invariant to adding a constant to all "
+                "logits, so nothing stops the final-layer logits from "
+                "drifting upward together until low-precision arithmetic "
+                "misbehaves; z-loss penalizes the softmax normalizer to pin "
+                "the logit scale.",
+                "It normalizes gradients across data-parallel workers.",
+                "It rescales the loss so different domains contribute " "equally.",
+            ),
+            answer=1,
+            explanation=(
+                "The softmax output depends only on logit differences, so the "
+                "absolute scale is a free parameter that can drift over a "
+                "long run - harmless in fp32, dangerous in bf16. Z-loss "
+                "(PaLM, ST-MoE) adds a small penalty on log-sum-exp of the "
+                "logits, anchoring the scale. It is a stability patch, not a "
+                "regularizer for generalization."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Two launches of the same training job - same code, same "
+                "data, same seeds - produce measurably different weights. "
+                "What is the root cause?"
+            ),
+            options=(
+                "Cosmic-ray bit flips in GPU memory.",
+                "The random seeds silently differ between launches.",
+                "Floating-point addition is not associative, and massively "
+                "parallel GPU reductions sum in nondeterministic order, so "
+                "each run accumulates different last-bit rounding that a "
+                "chaotic system amplifies over millions of steps.",
+                "The checkpoint format truncates the mantissa.",
+            ),
+            answer=2,
+            explanation=(
+                "Parallel reductions schedule their partial sums differently "
+                "run to run, and (a+b)+c differs from a+(b+c) in floats. Each "
+                "difference is one ulp, but training dynamics amplify rather "
+                "than damp them. Teams therefore promise statistical "
+                "reproducibility and bitwise-faithful checkpoint resumption, "
+                "not bit-identical end-to-end runs."
+            ),
+        ),
+    ),
+    "distributed-training": (
+        Question(
+            prompt=(
+                "In mixed-precision AdamW training, roughly how do the 16 "
+                "bytes per parameter break down, and what does that imply "
+                "about what to shard first?"
+            ),
+            options=(
+                "8 bytes of weights and 8 of gradients; shard the weights " "first.",
+                "2 bytes of bf16 weights, 2 of bf16 gradients, and 12 of "
+                "fp32 optimizer state (master weights plus two Adam "
+                "moments); the optimizer state dominates, which is why "
+                "ZeRO stage 1 shards it before touching anything else.",
+                "4 bytes each of weights, gradients, activations, and "
+                "optimizer state; shard activations first.",
+                "16 bytes of weights; quantize before sharding.",
+            ),
+            answer=1,
+            explanation=(
+                "The counterintuitive headline is that the weights are the "
+                "smallest tenant of their own training run: master weights "
+                "(4) plus two moments (4+4) make the optimizer state six "
+                "times the bf16 weights. Sharding it across N data-parallel "
+                "workers (ZeRO-1) removes most of the redundancy without "
+                "adding communication to the layer-by-layer critical path."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A colleague worries that switching from plain data "
+                "parallelism to ZeRO-3/FSDP will change the model's training "
+                "trajectory. What is the correct response?"
+            ),
+            options=(
+                "It will: sharding approximates the gradients, trading "
+                "accuracy for memory.",
+                "It will: each GPU now trains its shard on its own data "
+                "slice, like an ensemble.",
+                "It will not: every ZeRO stage computes bit-for-bit the same "
+                "optimizer step as plain data parallelism - it is a storage "
+                "layout, not an algorithm - so no hyperparameter interacts "
+                "with it.",
+                "It will not, but only if the learning rate is rescaled by "
+                "the shard count.",
+            ),
+            answer=2,
+            explanation=(
+                "ZeRO's insight is that N data-parallel replicas hold N "
+                "identical copies of state that can be split N ways and "
+                "reassembled on demand (all-gather for parameters, "
+                "reduce-scatter for gradients). The arithmetic is unchanged; "
+                "only where the bytes live changes. That is what separates "
+                "it from tensor or pipeline parallelism, which restructure "
+                "the computation itself."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why does tensor parallelism stay within a single node while "
+                "pipeline parallelism crosses nodes?"
+            ),
+            options=(
+                "Tensor parallelism requires identical GPUs, and only GPUs "
+                "in one node are identical.",
+                "Tensor parallelism puts all-reduces on the critical path of "
+                "every layer, so it needs NVLink-class intra-node bandwidth; "
+                "pipeline parallelism sends only one activation tensor per "
+                "stage boundary, which slower inter-node links handle fine.",
+                "Pipeline parallelism cannot function inside a node.",
+                "CUDA restricts collective operations to eight GPUs.",
+            ),
+            answer=1,
+            explanation=(
+                "The placement rule is: match communication appetite to link "
+                "speed. TP is chatty and latency-sensitive (per-layer, "
+                "per-microbatch), PP is quiet (per-boundary), and DP syncs "
+                "once per step and overlaps with compute. Inverting the "
+                "order - TP across slow links - stalls every layer of every "
+                "forward and backward pass."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A pipeline has p stages and processes m microbatches per "
+                "step. What fraction of time is lost to the bubble, and what "
+                "follows from the formula?"
+            ),
+            options=(
+                "Roughly p divided by m squared; bubbles vanish for deep " "pipelines.",
+                "Roughly (p-1)/(m+p-1): the idle time from filling and "
+                "draining shrinks as microbatches increase, so deeper "
+                "pipelines demand proportionally more microbatches to stay "
+                "efficient.",
+                "Exactly 50 percent regardless of configuration.",
+                "Zero, if activations are checkpointed.",
+            ),
+            answer=1,
+            explanation=(
+                "While the pipeline fills and drains, early and late stages "
+                "idle; with m microbatches in flight the overhead amortizes "
+                "as (p-1)/(m+p-1). Doubling pipeline depth without doubling "
+                "microbatches lowers utilization - one reason batch sizes at "
+                "scale are large, and why pipeline schedules (interleaving, "
+                "one-forward-one-backward) are an active engineering area."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why is 'all-reduce = reduce-scatter + all-gather' more than " "trivia?"
+            ),
+            options=(
+                "It proves all-reduce is twice as slow as it needs to be.",
+                "It shows ZeRO adds no fundamentally new communication: "
+                "sharded data parallelism runs the two halves of the "
+                "all-reduce plain DP already performed, with storage "
+                "rearranged between them - and each half moves about the "
+                "array size per GPU regardless of cluster size.",
+                "It means all-gather can replace all-reduce in any " "algorithm.",
+                "It only holds for clusters with power-of-two GPU counts.",
+            ),
+            answer=1,
+            explanation=(
+                "Ring implementations of each half move (N-1)/N of the data "
+                "per GPU - nearly constant in N - which makes communication "
+                "budgets predictable and explains why ZeRO-2's traffic "
+                "matches plain DP's. The identity turns 'exotic sharding "
+                "scheme' into 'the same two collectives, reordered', which "
+                "is the level of understanding interviews probe for."
+            ),
+        ),
+    ),
+    "scaling-laws": (
+        Question(
+            prompt=(
+                "Kaplan et al. (2020) and the Chinchilla work (2022) fit "
+                "scaling laws to similar data but reached different "
+                "prescriptions. What actually changed?"
+            ),
+            options=(
+                "Chinchilla used a fundamentally different loss function.",
+                "Chinchilla found the earlier small-model runs had used "
+                "learning-rate schedules mismatched to their training "
+                "length, understating small models; with matched schedules "
+                "and isoFLOP sweeps, the optimum moved from growing "
+                "parameters fastest to growing parameters and tokens in "
+                "equal proportion, about 20 tokens per parameter.",
+                "Chinchilla trained on code, which favors smaller models.",
+                "Kaplan measured perplexity while Chinchilla measured " "accuracy.",
+            ),
+            answer=1,
+            explanation=(
+                "The confound: a cosine schedule must land at the final "
+                "token (Chapter 7); truncating runs mid-schedule flattered "
+                "large models. The corrected fit implied GPT-3-era models "
+                "were several-fold undertrained, and the 70B-on-1.4T "
+                "Chinchilla model beating a 4x larger one on equal compute "
+                "was the demonstration. A methodology detail moved the "
+                "entire field's budgets."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Using the approximation that training costs about 6ND "
+                "floating-point operations, what does doubling only the "
+                "model size N at a fixed compute budget force you to do, and "
+                "why can that hurt?"
+            ),
+            options=(
+                "Nothing; compute depends only on N.",
+                "Halve the training tokens D - and if that pushes you above "
+                "the compute-optimal tokens-per-parameter ratio toward the "
+                "undertrained side, the bigger model finishes with a worse "
+                "loss than the smaller one would have.",
+                "Double the tokens D to match.",
+                "Halve the batch size to compensate.",
+            ),
+            answer=1,
+            explanation=(
+                "C = 6ND makes the tradeoff a seesaw: at fixed C, parameters "
+                "and tokens trade off exactly. The isoFLOP curves are "
+                "U-shaped in that split - too big means undertrained, too "
+                "small means underfit - and the Chinchilla point is the "
+                "bottom. The 6 decomposes as roughly 2 FLOPs per parameter "
+                "for the forward pass and 4 for the backward."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Llama 3's 8B model trained on about 1,900 tokens per "
+                "parameter - two orders of magnitude past Chinchilla's 20. "
+                "What justifies this?"
+            ),
+            options=(
+                "Nothing; it was a widely acknowledged waste of compute.",
+                "Chinchilla's ratio only applies to models above 70B " "parameters.",
+                "Chinchilla minimizes loss for a fixed training budget with "
+                "serving priced at zero; when lifetime inference cost is "
+                "included, every served token re-pays the parameter count, "
+                "so overspending on training to reach target quality in "
+                "fewer parameters pays for itself indefinitely.",
+                "The extra tokens were needed only for multilingual " "coverage.",
+            ),
+            answer=2,
+            explanation=(
+                "This is the inference-aware amendment (Sardana et al., "
+                "2024): the optimum shifts toward smaller-overtrained as "
+                "expected serving volume grows. It is the visible strategy "
+                "of the open-weight era, where models must run on modest "
+                "hardware. The regime change to name: training cost is paid "
+                "once; serving cost is paid per token, forever."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Fitted scaling laws include an irreducible loss term that "
+                "no amount of scale removes. What is it?"
+            ),
+            options=(
+                "The numerical error of bf16 arithmetic.",
+                "The entropy of the text itself: genuinely unpredictable "
+                "content costs bits even for a perfect model, so scaling "
+                "only buys down the reducible gap between the model and "
+                "that floor.",
+                "The loss contributed by the softmax temperature.",
+                "An artifact of weight decay that better optimizers remove.",
+            ),
+            answer=1,
+            explanation=(
+                "In the compression view (Chapter 6), the corpus contains "
+                "real information - names, outcomes, arbitrary choices - "
+                "that no predictor can anticipate; that content sets a "
+                "floor measured in bits per token. Fitted laws routinely "
+                "estimate this constant, and its existence is why 'loss "
+                "goes to zero with enough scale' is a wrong mental model."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A team improves its data cleaning pipeline and observes "
+                "loss well below what its fitted scaling law predicted at "
+                "that compute. The team claims to have 'beaten the scaling "
+                "law.' What is the sharper interpretation?"
+            ),
+            options=(
+                "The law was fit with too few points and is simply wrong.",
+                "Scaling laws are properties of a particular corpus and "
+                "tokenizer, not of nature: better data shifts the whole "
+                "curve, so the team is now on a different, better law - "
+                "which also warns against porting published constants to "
+                "your own data.",
+                "The improvement is impossible and indicates evaluation "
+                "contamination.",
+                "Loss below the law's prediction proves the model is " "memorizing.",
+            ),
+            answer=1,
+            explanation=(
+                "The fitted exponents and constants encode the data "
+                "distribution. Changing the distribution changes the law - "
+                "which is precisely why data work (Chapter 6) is a "
+                "first-class lever: it moves the curve that compute then "
+                "slides you along. Published constants are estimates for "
+                "someone else's corpus, not physics."
+            ),
+        ),
+    ),
 }
 
 
