@@ -615,6 +615,108 @@ _ENTRIES: tuple[Reference, ...] = (
         arxiv="",
         url="https://openai.com/index/learning-to-reason-with-llms/",
     ),
+    # ---- Part I second-layer depth ----------------------------------------
+    Reference(
+        key="schaeffer2023",
+        authors=("Schaeffer, R.", "Miranda, B.", "Koyejo, S."),
+        truncated=False,
+        year=2023,
+        title="Are emergent abilities of large language models a mirage?",
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2304.15004",
+        url="",
+    ),
+    Reference(
+        key="provilkov2020",
+        authors=("Provilkov, I.", "Emelianenko, D.", "Voita, E."),
+        truncated=False,
+        year=2020,
+        title="BPE-dropout: Simple and effective subword regularization",
+        venue="Association for Computational Linguistics",
+        arxiv="1910.13267",
+        url="",
+    ),
+    Reference(
+        key="peng2023",
+        authors=("Peng, B.", "Quesnelle, J.", "Fan, H.", "Shippole, E."),
+        truncated=False,
+        year=2023,
+        title="YaRN: Efficient context window extension of large language models",
+        venue="International Conference on Learning Representations",
+        arxiv="2309.00071",
+        url="",
+    ),
+    Reference(
+        key="deepseekv2",
+        authors=("DeepSeek-AI",),
+        truncated=False,
+        year=2024,
+        title=(
+            "DeepSeek-V2: A strong, economical, and efficient "
+            "mixture-of-experts language model"
+        ),
+        venue="arXiv preprint",
+        arxiv="2405.04434",
+        url="",
+    ),
+    Reference(
+        key="deepseekv3",
+        authors=("DeepSeek-AI",),
+        truncated=False,
+        year=2024,
+        title="DeepSeek-V3 technical report",
+        venue="arXiv preprint",
+        arxiv="2412.19437",
+        url="",
+    ),
+    Reference(
+        key="jiang2023",
+        authors=(
+            "Jiang, A. Q.",
+            "Sablayrolles, A.",
+            "Mensch, A.",
+            "Bamford, C.",
+        ),
+        truncated=True,
+        year=2023,
+        title="Mistral 7B",
+        venue="arXiv preprint",
+        arxiv="2310.06825",
+        url="",
+    ),
+    Reference(
+        key="raffel2020",
+        authors=(
+            "Raffel, C.",
+            "Shazeer, N.",
+            "Roberts, A.",
+            "Lee, K.",
+        ),
+        truncated=True,
+        year=2020,
+        title=(
+            "Exploring the limits of transfer learning with a unified "
+            "text-to-text transformer"
+        ),
+        venue="Journal of Machine Learning Research, 21(140)",
+        arxiv="1910.10683",
+        url="",
+    ),
+    Reference(
+        key="dehghani2023",
+        authors=(
+            "Dehghani, M.",
+            "Djolonga, J.",
+            "Mustafa, B.",
+            "Padlewski, P.",
+        ),
+        truncated=True,
+        year=2023,
+        title="Scaling vision transformers to 22 billion parameters",
+        venue="International Conference on Machine Learning",
+        arxiv="2302.05442",
+        url="",
+    ),
 )
 
 

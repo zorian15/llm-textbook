@@ -46,11 +46,14 @@ The merges are the tokenizer. To tokenize new text at inference time, you replay
 Production tokenizers are variations on this theme:
 
 - **Byte-level BPE** runs BPE over the 256 possible *bytes* rather than characters, so every string — any language, any emoji, any binary garbage — is representable and there is no unknown token, ever. GPT-2 introduced this [@radford2019] and the GPT lineage kept it.
-- **WordPiece** is BPE with a different merge criterion (likelihood gain rather than raw frequency) [@schuster2012]; it is the tokenizer of BERT [@devlin2019].
+- **WordPiece** is BPE with a different merge criterion [@schuster2012]: instead of the most frequent pair, it merges the pair that most raises the corpus likelihood under a unigram language model, which scores a pair roughly by its frequency divided by the product of its parts' frequencies. That normalization favors pairs that co-occur *more than chance* rather than pairs that are merely common because their parts are. It is the tokenizer of BERT [@devlin2019].
 - **Unigram** flips the direction: start from a large candidate vocabulary and prune it down, keeping the pieces that best explain the corpus under a probabilistic model [@kudo2018].
-- **SentencePiece** is the widely used library that packages these algorithms, treating text as a raw stream (spaces included) so the pipeline is language-agnostic and exactly reversible [@kudo2018sp].
+- **SentencePiece** is the widely used library that packages these algorithms, treating text as a raw stream so the pipeline is language-agnostic and exactly reversible [@kudo2018sp]. The trick is to escape each space as a visible meta-symbol (`▁`) that lives in the vocabulary, so detokenizing is just concatenation with `▁` mapped back to a space — no language-specific rules, and the reason a leading space usually binds to the following word as one token.
 
 The differences matter less than the shared shape: a current open model ships a byte-level BPE or SentencePiece vocabulary of roughly 32k to 256k tokens, learned once from a corpus resembling its pretraining data, then frozen forever.
+
+!!! interview "Interview"
+    *How would you make a model more robust to how its inputs get segmented?* Randomize the segmentation during training. **Subword regularization** [@kudo2018] and **BPE-dropout** [@provilkov2020] stochastically drop some merges so a word is seen under several valid tokenizations, forcing the model to learn subword pieces that are not brittle to one exact split. Crucially it is a *training-time* trick: at inference the tokenizer runs deterministically, so there is no throughput cost. The distractor to avoid is thinking this changes the vocabulary — it changes only which segmentation the model sees during training.
 
 !!! warning "Common trap"
     The tokenizer is part of the model. Feed a model token ids produced by a different tokenizer and you get confident garbage, not an error — the integers all "mean" something else. Swapping or extending a vocabulary after pretraining is possible but requires retraining the embeddings involved.
@@ -65,7 +68,7 @@ The differences matter less than the shared shape: a current open model ships a 
 A frozen, frequency-based view of text explains a family of famous quirks:
 
 - **Character blindness.** Ask a model how many r's are in "strawberry" and it must answer from a token like `straw`+`berry` — it does not see letters. Spelling, rhyming, and counting tasks fail not because the model is stupid but because the evidence was destroyed before it arrived.
-- **Numbers.** If `1234` happens to be one token and `1235` is two, nearby numbers have wildly different shapes. Modern tokenizers force digits into fixed-size groups to make arithmetic more uniform, which helped — a tokenizer design choice visibly changing a "reasoning" ability.
+- **Numbers.** If `1234` happens to be one token and `1235` is two, nearby numbers have wildly different shapes. Modern tokenizers force digits into fixed-size groups — some splitting single digits, some grouping from the right so that place value stays aligned across different numbers — which measurably helps arithmetic. It is a tokenizer design choice visibly changing a "reasoning" ability.
 - **A non-English tax.** Vocabularies learned from English-heavy corpora spend their short codes on English. The same sentence can cost several times more tokens in Thai or Telugu than in English [@petrov2023] — which means higher API cost, a smaller effective context window, and often worse quality, all before the model has done anything.
 - **Glitch tokens.** A token that barely appeared in training data has an essentially untrained embedding, and feeding it to the model produces erratic behavior. Unusual byte sequences are also a place where filters and models can disagree about what text "says" — part of the injection surface Chapter 18 returns to.
 

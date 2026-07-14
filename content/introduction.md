@@ -14,6 +14,7 @@ a distribution over the vocabulary. To generate text, you sample a token from th
     An LLM is a next-token predictor run in a loop. Its "thinking" is a side effect of predicting each next token well enough that the whole sequence hangs together.
 
 Training is nothing more exotic than teaching $p_\theta$ to assign high probability to the tokens that actually came next in a huge corpus of human text. The loss is cross-entropy — the number of *bits of surprise* the model feels at each real token. Drive that surprise down across trillions of tokens and, empirically, useful behavior falls out.
+This same loss is often reported as *perplexity*, $2^{H}$ for a cross-entropy $H$ in bits, which reads as the effective number of equally likely tokens the model is choosing among at each step.
 
 !!! analogy "Analogy"
     Think of a student who has read the entire internet and plays a relentless game of "guess the next word." To get good at the game on *arbitrary* text, they are forced to absorb grammar, facts, arithmetic, code, and the rhythms of argument. The game is trivial; being good at it is not. This leaks in one place: the student never gets to *act* in the world during study, only to predict — which is exactly why Part III exists.
@@ -26,6 +27,9 @@ Training is nothing more exotic than teaching $p_\theta$ to assign high probabil
 ## Why "large" is the whole story
 
 Nothing about next-token prediction is new; the surprise is what happens at scale. As you increase parameters, data, and compute together, the loss falls along a smooth power law [@kaplan2020], and somewhere along that curve the model stops merely completing text and starts following instructions, doing multi-step arithmetic, and writing working code [@brown2020; @wei2022]. We spend Chapter 9 on the exact shape of these *scaling laws*, because they are the closest thing the field has to a design equation.
+
+!!! interview "Interview"
+    *Are these "emergent abilities" real, or an illusion?* The strongest skeptical case [@schaeffer2023] is that a sharp jump can be manufactured by the *metric*: an all-or-nothing score like exact-match accuracy stays near zero until every step of a task is right, so a smoothly improving skill looks like a sudden switch. Measure the same capability with a continuous, per-token metric and the jump often smooths out. The honest answer is that capabilities do grow with scale, but the *abruptness* is partly a measurement artifact — a favorite trap for a confident candidate.
 
 The practical consequence: much of LLM engineering is really *systems* engineering. Making a model bigger means splitting it across hundreds of GPUs to train (Chapter 8) and squeezing it back onto a few to serve (Part IV). A great deal of what an LLM engineer does is fight the memory and bandwidth of physical hardware.
 

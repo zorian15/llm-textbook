@@ -26,9 +26,18 @@ The four drafted chapters — `00-preface`, `01-introduction`, `04-transformer`,
   where it leaks (see the "reading a mystery novel" analogy in Chapter 4).
 - **Every chapter should carry its weight in callouts:** at least one Intuition
   box, and Interview boxes for the questions a candidate is actually asked.
+- **Carry interview-level depth — the second-question layer.** The concise prose
+  should give the clean *first* answer; the follow-up probes an interviewer asks
+  next are delivered through (1) **Interview boxes** and (2) short **second-layer
+  asides** that deepen a claim in a sentence or two, plus the end-of-chapter quiz
+  (see Quizzes below). Conciseness and depth are complementary, not opposed: add
+  depth through these vehicles, never by padding the narrative. When a topic
+  belongs to a later chapter, name it with a forward-pointer rather than
+  duplicating it here.
 - **Every `##` section carries at least one figure** (see Figures below). This
   is a floor, not a ceiling — add a second or third whenever the material earns
   it.
+- **Every chapter ends with a "Check yourself" quiz** (see Quizzes below).
 - **Second person, active voice, present tense.** "The model reads a sequence,"
   not "sequences are read by the model."
 - **Cross-reference by chapter** ("the KV cache, Chapter 15") so the book feels
@@ -41,6 +50,7 @@ The four drafted chapters — `00-preface`, `01-introduction`, `04-transformer`,
 ```
 toc.py                  Single source of truth: parts, chapters, labels, outlines.
 references.py           Single source of truth for cited works (see Citations).
+quizzes.py              Single source of truth for end-of-chapter quizzes.
 content/<slug>.md       One Markdown file per drafted chapter. Optional.
 figures/make_figures.py Generates every figure as SVG into assets/figures/,
                         plus the cover and icons into assets/.
@@ -138,6 +148,30 @@ something, listing exactly the works that chapter cites. Keys live in
 * The build prints a note listing entries that are not yet cited anywhere —
   harmless while chapters are pending, worth pruning if an entry becomes
   permanently orphaned.
+
+### Quizzes
+
+Every chapter ends with an interactive **"Check yourself" quiz** of **4–6
+challenging, interview-style multiple-choice questions**. The build renders it
+automatically after the References; a small inline script makes it interactive
+(pick an option → it is marked right or wrong, the correct answer is revealed,
+an explanation appears). Questions live in `quizzes.py`, keyed by chapter slug —
+the single source of truth, mirroring `references.py`. **Do not hand-write quiz
+HTML.**
+
+* **The data model:** a frozen `Question(prompt, options, answer, explanation)`,
+  where `answer` is the index of the correct option. Add a chapter's questions
+  as a tuple under its slug in `_QUIZZES`.
+* **The bar:** questions should be *hard* the way an interview is hard. The
+  distractors are the plausible **misconceptions**, and each `explanation`
+  carries a **second-layer detail** — it should teach, not just confirm. Draw on
+  the same gaps the Interview boxes and asides target, so the quiz reinforces the
+  reading.
+* **Plain text only.** The renderer HTML-escapes everything, which neutralizes
+  MathJax delimiters — phrase math in words or plain symbols, no `$...$`.
+* **The build asserts** each chapter has 4–6 questions, each question has exactly
+  one correct option, and every quiz slug is a real chapter. Malformed quizzes
+  fail the build. It also prints a note listing drafted chapters with no quiz.
 
 ### Math
 
@@ -238,10 +272,15 @@ resources.
 - Every `##` section carries at least one real figure (not a `!!! figure`
   placeholder), each with an idea-carrying caption.
 - At least one Intuition box and the Interview questions a candidate would face.
+- Carries interview-level depth: Interview boxes and short second-layer asides
+  cover the follow-up probes for the topic, each honest about what is deferred
+  to a later chapter (forward-pointer, not duplication).
 - Analogies name where they leak.
 - Cross-references to related chapters are present and correct.
 - Load-bearing claims carry `[@key]` citations, each verified against the
   actual paper (see Citations above).
+- An end-of-chapter quiz of 4–6 challenging questions exists in `quizzes.py`
+  (see Quizzes above).
 - `python build.py` runs clean and the page reads well in a browser.
 
 ## Deployment

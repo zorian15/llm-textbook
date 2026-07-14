@@ -9,7 +9,7 @@ Attention is order-blind: shuffle the tokens and the $QK^\top$ scores shuffle wi
 !!! intuition "Intuition"
     Think of each 2D pair as a clock hand that turns as you move through the sequence, with fast hands and slow hands. Attention compares two tokens by the *angle between* their hands, and that angle only encodes how far apart they are — which is what grammar actually cares about.
 
-RoPE also concentrates the levers for long context: because position lives in rotation frequencies, stretching the frequency schedule (raising the rotation base, interpolating positions) is how models trained at one context length are extended to much longer ones — a topic that returns with the serving costs of Chapter 15.
+RoPE also concentrates the levers for long context: because position lives in rotation frequencies, stretching the frequency schedule is how a model trained at one context length is extended to a much longer one. The named methods — linear position interpolation, NTK-aware scaling, and YaRN [@peng2023] — differ in how carefully they remap those frequencies so that short-range resolution survives; the serving costs return in Chapter 15.
 
 <figure class="wide">
 <img src="assets/figures/rope.svg" alt="The same token drawn as a clock face at three positions, its hand rotated further at each later position; the caption notes that the attention score depends on the angle between two hands.">
@@ -23,6 +23,8 @@ Two separate upgrades hide under "normalization."
 *Where* it sits: the 2017 transformer normalized *after* each sublayer (post-norm), which at large depth needs a delicate warmup to avoid divergence. Placing the normalization *before* each sublayer (pre-norm) keeps the residual stream itself untouched — an identity path from embedding to output — and gradients flow through deep stacks without drama [@xiong2020]. Every modern LLM is pre-norm; the block in Chapter 4 already showed it.
 
 *What* it computes: LayerNorm [@ba2016] centers activations (subtract the mean) and scales them (divide by the standard deviation). **RMSNorm** [@zhang2019] drops the centering and simply divides by the root-mean-square, with a learned gain. It is cheaper — one fewer reduction over the hidden dimension, and no bias parameters — and models train just as well. When an ablation says the cheap half of an operation was the only half that mattered, the expensive half disappears from the recipe.
+
+A related trick you will see in recent models is **QK-norm**: normalizing the queries and keys before their dot product to keep attention logits from blowing up at large scale [@dehghani2023].
 
 <figure class="wide">
 <img src="assets/figures/prenorm.svg" alt="Two columns: post-norm places LayerNorm on the residual stream after the add, breaking it; pre-norm places the norm on the branch, leaving the residual stream an unbroken identity path.">
@@ -53,6 +55,8 @@ At inference time, every past token's keys and values are cached so they are not
 
 The fix is to share. **Multi-query attention (MQA)** keeps all the query heads but gives them one shared key/value head [@shazeer2019] — a large cache reduction with a measurable quality cost. **Grouped-query attention (GQA)** interpolates: query heads are divided into groups, each group sharing one KV head [@ainslie2023]. With, say, 32 query heads and 8 KV heads, the cache shrinks 4× while quality stays near full multi-head attention. GQA is the current default.
 
+Sharing heads is not the only lever on the cache. **Sliding-window (local) attention** bounds it a different way: each token attends only to the last $w$ tokens, so cost and cache stop growing once the window is full, often with a few global layers interleaved to preserve long-range reach [@jiang2023]. And **multi-head latent attention (MLA)**, the successor probe past GQA, compresses the keys and values into a small shared latent, shrinking the cache below what GQA achieves [@deepseekv2].
+
 <figure class="wide">
 <img src="assets/figures/attention-sharing.svg" alt="Three layouts of query heads wired to key/value heads: multi-head attention has one KV head per query head, grouped-query attention shares one KV head per group of four query heads, and multi-query attention shares a single KV head.">
 <figcaption>Sharing key/value heads. Full multi-head attention stores a KV head for every query head; GQA shares one across a group and MQA across all of them. Fewer KV heads means a smaller cache — longer context and bigger batches — at a small, controllable quality cost.</figcaption>
@@ -70,7 +74,7 @@ That splits a number you have been treating as one. A "Mixtral 8×7B" has ~47B *
 !!! intuition "Intuition"
     Storing knowledge is cheap; computing with all of it on every token is not. MoE keeps a large library but only sends each token to the two most relevant shelves.
 
-The costs are real: all experts must fit in memory even though most idle per token, the router must be trained to spread load evenly (an auxiliary loss does this), and training is less stable than dense. Chapter 8's parallelism strategies also grow a new dimension, since experts can live on different devices.
+The costs are real, and the routing details are where the interviews live. Each expert has a *capacity*; tokens routed past it are dropped, so the router must be trained to spread load evenly. Classic MoE adds an auxiliary load-balancing loss for this; because that loss tugs against quality, newer models (DeepSeek-V3) pursue *auxiliary-loss-free* balancing via learned routing biases instead [@deepseekv3]. All experts must also fit in memory even though most idle per token, training is less stable than dense, and Chapter 8's parallelism grows a new dimension since experts can live on different devices.
 
 <figure class="wide">
 <img src="assets/figures/moe.svg" alt="A router sends a token to two of six experts, whose edges are highlighted while the other four are dashed; a callout contrasts six experts held in memory with two run per token.">

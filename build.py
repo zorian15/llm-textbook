@@ -18,6 +18,7 @@ from pathlib import Path
 
 import markdown
 
+import quizzes
 import references
 import toc
 
@@ -118,6 +119,32 @@ MENU_SCRIPT = """\
     if (event.key === "Escape") {
       document.body.classList.remove("nav-open");
     }
+  });
+</script>
+"""
+
+# Makes the end-of-chapter quizzes interactive. Clicking an option locks the
+# question, marks the chosen option right or wrong, reveals the correct one if
+# the reader missed it, and unhides the explanation. It is a no-op on pages
+# with no quiz. The reveal is an instant hidden-toggle with no animation, so it
+# needs no reduced-motion handling.
+QUIZ_SCRIPT = """\
+<script>
+  document.querySelectorAll(".quiz-option").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var question = button.closest(".quiz-q");
+      if (question.classList.contains("answered")) return;
+      question.classList.add("answered");
+      button.classList.add(
+        button.dataset.correct === "true" ? "is-correct" : "is-incorrect"
+      );
+      question.querySelectorAll(".quiz-option").forEach(function (option) {
+        if (option.dataset.correct === "true") option.classList.add("is-correct");
+        option.disabled = true;
+      });
+      var explanation = question.querySelector(".quiz-explain");
+      if (explanation) explanation.hidden = false;
+    });
   });
 </script>
 """
@@ -327,6 +354,50 @@ def references_section_html(cited_keys: list[str]) -> str:
     )
 
 
+def quiz_section_html(slug: str) -> str:
+    """Render a chapter's "Check yourself" quiz as static, interactive HTML.
+
+    Each question renders as a list item with a prompt, a group of option
+    buttons (the correct one flagged via a data attribute for the inline
+    script), and a hidden explanation revealed after answering. The build
+    asserts exactly one correct option per question, so a malformed quiz fails
+    loudly rather than shipping a question with no answer or two.
+    """
+    questions = quizzes.QUIZZES[slug]
+    items = []
+    for index, question in enumerate(questions, start=1):
+        qid = f"quiz-{slug}-q{index}"
+        correct_count = 0
+        option_html = []
+        for option_index, option in enumerate(question.options):
+            is_correct = option_index == question.answer
+            correct_count += is_correct
+            option_html.append(
+                f'<button type="button" class="quiz-option" '
+                f'data-correct="{"true" if is_correct else "false"}">'
+                f"{html.escape(option)}</button>"
+            )
+        assert (
+            correct_count == 1
+        ), f"Question {qid} must have exactly one correct option, has {correct_count}."
+        items.append(
+            f'<li class="quiz-q" id="{qid}">\n'
+            f'<p class="quiz-prompt">{html.escape(question.prompt)}</p>\n'
+            f'<div class="quiz-options" role="group" aria-label="Answer options">\n'
+            + "\n".join(option_html)
+            + "\n</div>\n"
+            f'<div class="quiz-explain" hidden aria-live="polite">'
+            f"{html.escape(question.explanation)}</div>\n</li>"
+        )
+    return (
+        '<section class="quiz" aria-labelledby="check-yourself">\n'
+        '<h2 id="check-yourself">Check yourself</h2>\n'
+        '<p class="quiz-intro">Interview-style questions on this chapter. '
+        "Pick an answer to see whether it holds up.</p>\n"
+        '<ol class="quiz-list">\n' + "\n".join(items) + "\n</ol>\n</section>"
+    )
+
+
 def wrap_tables(body_html: str) -> str:
     """Wrap every table in a horizontally scrollable container.
 
@@ -386,6 +457,13 @@ def render_body(
     if cited_keys:
         body_html += references_section_html(cited_keys)
         rail.append(("references", "", "References"))
+
+    # The quiz is independent of citations: a chapter can have one without the
+    # other. Like References, it is appended after heading numbering so it stays
+    # an unnumbered back-matter section.
+    if chapter.slug in quizzes.QUIZZES:
+        body_html += quiz_section_html(chapter.slug)
+        rail.append(("check-yourself", "", "Check yourself"))
     return body_html, rail, cited_keys
 
 
@@ -538,7 +616,7 @@ def page_html(
 </div>
 </main>
 </div>
-{MENU_SCRIPT}</body>
+{MENU_SCRIPT}{QUIZ_SCRIPT}</body>
 </html>
 """
     return document, cited_keys
@@ -625,6 +703,16 @@ def build() -> None:
     shutil.copytree(ASSETS_DIR, OUTPUT_DIR / "assets")
 
     pages = toc.all_pages()
+
+    # Every quiz must target a real chapter, so a typo in quizzes.py fails the
+    # build instead of silently rendering nowhere.
+    page_slugs = {chapter.slug for chapter in pages}
+    unknown_quiz_slugs = set(quizzes.QUIZZES) - page_slugs
+    assert not unknown_quiz_slugs, (
+        f"quizzes.py targets unknown chapter slug(s): {sorted(unknown_quiz_slugs)}. "
+        "Fix the key in quizzes.py to match a slug in toc.py."
+    )
+
     md = make_markdown()
 
     cited_anywhere: set[str] = set()
@@ -656,6 +744,17 @@ def build() -> None:
         print(
             f"  Note: {len(uncited)} reference(s) in references.py are not yet "
             f"cited anywhere: {', '.join(uncited)}."
+        )
+
+    quizless = sorted(
+        c.slug
+        for c in pages
+        if (CONTENT_DIR / f"{c.slug}.md").exists() and c.slug not in quizzes.QUIZZES
+    )
+    if quizless:
+        print(
+            f"  Note: {len(quizless)} drafted chapter(s) have no quiz in "
+            f"quizzes.py: {', '.join(quizless)}."
         )
 
 

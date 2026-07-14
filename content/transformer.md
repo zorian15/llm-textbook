@@ -31,7 +31,7 @@ Stacked over the whole sequence, this is a few matrix multiplies:
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.$$
 
-The $QK^\top$ term is an $n \times n$ matrix of every-token-against-every-token scores — which is exactly why cost grows with the *square* of sequence length, the fact behind every long-context headache in Chapter 15.
+The $QK^\top$ term is an $n \times n$ matrix of every-token-against-every-token scores — which is exactly why cost grows with the *square* of sequence length, the fact behind every long-context headache in Chapter 15. In practice the wall is often *memory movement*, not raw arithmetic: FlashAttention computes the exact same softmax tile by tile without ever materializing that $n \times n$ matrix, and at inference the per-token keys and values are cached rather than recomputed — both deferred to Chapter 15.
 
 !!! interview "Interview"
     *Why divide by $\sqrt{d_k}$?* For large head dimension $d_k$, dot products have variance that grows with $d_k$, pushing softmax into saturated regions where gradients vanish. Scaling by $\sqrt{d_k}$ keeps the scores' variance near 1 so the softmax stays in a responsive range. Forgetting this term is a classic cause of training instability.
@@ -67,6 +67,12 @@ An LLM must predict the next token from *past* tokens only; letting position $i$
 !!! warning "Common trap"
     Break the mask and your eval loss looks magically low while the model has secretly been reading ahead. A loss that is suspiciously good early in training is the classic symptom.
 
+Because the mask guarantees each position sees only earlier ones, every position can be trained at once against the real next token — conditioning on the ground-truth prefix, which is called **teacher forcing**.
+That is also where the train/generate asymmetry comes from: training is parallel over a known sequence, but generation has no ground truth, so the model must feed on its *own* samples one step at a time.
+
+!!! interview "Interview"
+    *When would you reach for an encoder (BERT-style) instead of a decoder?* When the whole input is available and you need to *understand* it rather than continue it — classification, retrieval embeddings, span extraction. An **encoder** attends bidirectionally and is trained with masked-language-modeling, so every token sees both sides [@devlin2019]. A **decoder** is causal and autoregressive, built for generation. An **encoder-decoder** (T5-style) splits the two — a bidirectional encoder for the source, a causal decoder for the output — which suits translation and summarization [@raffel2020]. The mistake is treating "transformer" as one thing; the attention pattern and objective are the real fork.
+
 ## The rest of the block
 
 Attention moves information *between* positions. A transformer block pairs it with a feed-forward network (FFN) that processes *each* position independently, plus the connective tissue that makes deep stacks trainable:
@@ -99,7 +105,7 @@ A decoder-only transformer is then just:
 
 1. **Embed** each token id into a vector, and add positional information (Chapter 5 explains why modern models use rotary embeddings instead of the original sinusoids).
 2. **Repeat the block** $L$ times — 32 for a small model, 80-plus for a large one.
-3. **Un-embed**: a final linear layer maps the last position's vector to a score for every vocabulary token, and softmax turns those into the next-token distribution.
+3. **Un-embed**: a final linear layer maps the last position's vector to a score for every vocabulary token, and softmax turns those into the next-token distribution. Many models *tie* this layer to the input embedding — one shared matrix for both directions — saving a vocabulary-by-dimension block of parameters.
 
 !!! intuition "Intuition"
     The whole network is a tall stack of the same move: *mix across positions with attention, then refine each position with an FFN, over and over.* Depth lets early layers handle surface patterns and later layers assemble them into meaning.

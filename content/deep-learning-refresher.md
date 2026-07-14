@@ -44,12 +44,18 @@ Plain stochastic gradient descent takes the gradient of the current batch and st
 - **Momentum** keeps a running average of recent gradients and steps along that instead. Individual batches are noisy; the average points where the loss is *consistently* going down.
 - **Adaptive scaling** gives each parameter its own effective step size, normalized by the recent magnitude of its gradients. A parameter whose gradients are habitually huge takes proportionally smaller steps, and vice versa.
 
-Adam [@kingma2015] combines both, and AdamW [@loshchilov2019] fixes a subtle interaction by decoupling weight decay from the adaptive scaling. AdamW is the default optimizer for essentially every LLM you will meet in this book, and Chapter 7 covers the learning-rate schedule (warmup, then decay) that accompanies it.
+Adam [@kingma2015] combines both, and AdamW [@loshchilov2019] fixes a subtle interaction with weight decay.
+The subtlety: if you add decay as an L2 penalty in the loss, it enters the gradient and is then divided by Adam's per-parameter denominator, so parameters with large gradients get *less* effective decay — the opposite of uniform.
+AdamW decouples the two, subtracting a fixed fraction of each weight directly, independent of gradient scale.
+AdamW is the default optimizer for essentially every LLM you will meet in this book, and Chapter 7 covers the learning-rate schedule (warmup, then decay) that accompanies it.
 
 The learning rate itself remains the single most important hyperparameter in deep learning. Too high and the loss diverges; too low and you waste compute crawling. Everything else in an optimizer exists to make one global learning rate workable across millions of very different parameters.
 
 !!! interview "Interview"
     *Why is Adam(W) used for transformers instead of plain SGD?* Because gradient magnitudes in a transformer vary enormously across parameters — embedding rows for rare tokens see gradients rarely, while LayerNorm gains see them constantly. Adam's per-parameter normalization equalizes these scales so one learning rate serves all of them; with plain SGD, transformers train poorly or need impractical per-layer tuning.
+
+!!! interview "Interview"
+    *A model runs a forward pass fine but hits out-of-memory during training. Why, and what are your levers?* Training holds far more than the weights: every layer's activations (kept for the backward pass), the gradients, and the optimizer state — for AdamW that is two moments per parameter plus, in mixed-precision training, an fp32 master copy, roughly 16 bytes per parameter *before* activations. The levers each attack one term: gradient checkpointing recomputes activations instead of storing them, gradient accumulation shrinks the batch's activation footprint, and optimizer-state sharding across GPUs (ZeRO, Chapter 8) splits the moments and master weights. Inference needs none of this, which is why a model that generates comfortably can still be untrainable on the same hardware.
 
 <figure>
 <img src="assets/figures/lr-curves.svg" alt="Loss over training steps for three learning rates: a well-tuned rate converges smoothly, too-low barely moves, and too-high wobbles then diverges off the chart.">
