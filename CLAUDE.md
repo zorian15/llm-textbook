@@ -167,6 +167,16 @@ HTML.**
   carries a **second-layer detail** — it should teach, not just confirm. Draw on
   the same gaps the Interview boxes and asides target, so the quiz reinforces the
   reading.
+* **Balanced, non-telegraphing options.** All four options must read as
+  comparably detailed and confident — one short option here or there is fine,
+  but the correct one must never be the consistently longest choice or a
+  verbatim lift from the prose, or the answer gives itself away on shape alone.
+  Each distractor is a full, plausible misconception; aim for one *tempting
+  near-miss* per question. The renderer shuffles the options on load, so the
+  `answer` index carries no positional signal — write the options in any order,
+  and never write one that refers to another by position ("both A and B"). The
+  build prints a note if a chapter's correct option is the longest in most of
+  its questions; treat that note as a regression to fix.
 * **Plain text only.** The renderer HTML-escapes everything, which neutralizes
   MathJax delimiters — phrase math in words or plain symbols, no `$...$`.
 * **The build asserts** each chapter has 4–6 questions, each question has exactly
@@ -279,8 +289,8 @@ resources.
 - Cross-references to related chapters are present and correct.
 - Load-bearing claims carry `[@key]` citations, each verified against the
   actual paper (see Citations above).
-- An end-of-chapter quiz of 4–6 challenging questions exists in `quizzes.py`
-  (see Quizzes above).
+- An end-of-chapter quiz of 4–6 challenging questions exists in `quizzes.py`,
+  with balanced, non-telegraphing options (see Quizzes above).
 - `python build.py` runs clean and the page reads well in a browser.
 
 ## Deployment
