@@ -123,13 +123,33 @@ MENU_SCRIPT = """\
 </script>
 """
 
-# Makes the end-of-chapter quizzes interactive. Clicking an option locks the
-# question, marks the chosen option right or wrong, reveals the correct one if
-# the reader missed it, and unhides the explanation. It is a no-op on pages
-# with no quiz. The reveal is an instant hidden-toggle with no animation, so it
-# needs no reduced-motion handling.
+# Makes the end-of-chapter quizzes interactive. First it shuffles each
+# question's options on load, so the correct answer's position varies every
+# visit and can never be guessed from where it sits (the correct option is
+# flagged by a data attribute, not by its order, so reordering is safe).
+# Clicking an option then locks the question, marks the chosen option right or
+# wrong, reveals the correct one if the reader missed it, and unhides the
+# explanation. It is a no-op on pages with no quiz. The reveal is an instant
+# hidden-toggle with no animation, so it needs no reduced-motion handling.
 QUIZ_SCRIPT = """\
 <script>
+  // Shuffle each question's options so their order is randomized per visit.
+  // A Fisher-Yates shuffle gives a uniform permutation; appending the buttons
+  // in the shuffled order reorders them in place because they already share a
+  // parent. Correctness rides on data-correct, so order does not affect it.
+  document.querySelectorAll(".quiz-options").forEach(function (group) {
+    var options = Array.prototype.slice.call(group.children);
+    for (var i = options.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = options[i];
+      options[i] = options[j];
+      options[j] = tmp;
+    }
+    options.forEach(function (option) {
+      group.appendChild(option);
+    });
+  });
+
   document.querySelectorAll(".quiz-option").forEach(function (button) {
     button.addEventListener("click", function () {
       var question = button.closest(".quiz-q");
@@ -359,7 +379,9 @@ def quiz_section_html(slug: str) -> str:
 
     Each question renders as a list item with a prompt, a group of option
     buttons (the correct one flagged via a data attribute for the inline
-    script), and a hidden explanation revealed after answering. The build
+    script), and a hidden explanation revealed after answering. Options are
+    emitted in source order but the inline script shuffles them on load, so the
+    rendered position of the correct answer carries no information. The build
     asserts exactly one correct option per question, so a malformed quiz fails
     loudly rather than shipping a question with no answer or two.
     """
@@ -755,6 +777,27 @@ def build() -> None:
         print(
             f"  Note: {len(quizless)} drafted chapter(s) have no quiz in "
             f"quizzes.py: {', '.join(quizless)}."
+        )
+
+    # A gentle regression guard for the "correct answer is always the longest,
+    # most detailed option" tell. Flag any chapter where the correct choice is
+    # the strictly longest option in most of its questions. This is a note, not
+    # an assertion: an occasional longest-correct answer is fine, only a
+    # systematic pattern telegraphs the answer by shape.
+    telling = []
+    for slug, questions in quizzes.QUIZZES.items():
+        longest_correct = sum(
+            1
+            for q in questions
+            if len(q.options[q.answer])
+            > max(len(o) for i, o in enumerate(q.options) if i != q.answer)
+        )
+        if longest_correct >= 0.8 * len(questions):
+            telling.append(f"{slug} ({longest_correct}/{len(questions)})")
+    if telling:
+        print(
+            f"  Note: in {len(telling)} chapter(s) the correct option is the "
+            f"longest in most questions, a length tell: {', '.join(telling)}."
         )
 
 
