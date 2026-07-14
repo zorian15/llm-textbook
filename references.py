@@ -717,6 +717,246 @@ _ENTRIES: tuple[Reference, ...] = (
         arxiv="2302.05442",
         url="",
     ),
+    # ---- Pretraining data and objective (Part II) --------------------------
+    Reference(
+        key="shannon1951",
+        authors=("Shannon, C. E.",),
+        truncated=False,
+        year=1951,
+        title="Prediction and entropy of printed English",
+        venue="Bell System Technical Journal, 30(1)",
+        arxiv="",
+        url="https://doi.org/10.1002/j.1538-7305.1951.tb01366.x",
+    ),
+    Reference(
+        key="deletang2024",
+        authors=(
+            "Delétang, G.",
+            "Ruoss, A.",
+            "Duquenne, P.-A.",
+            "Catt, E.",
+        ),
+        truncated=True,
+        year=2024,
+        title="Language modeling is compression",
+        venue="International Conference on Learning Representations",
+        arxiv="2309.10668",
+        url="",
+    ),
+    Reference(
+        key="gao2020",
+        authors=("Gao, L.", "Biderman, S.", "Black, S.", "Golding, L."),
+        truncated=True,
+        year=2020,
+        title="The Pile: An 800GB dataset of diverse text for language modeling",
+        venue="arXiv preprint",
+        arxiv="2101.00027",
+        url="",
+    ),
+    Reference(
+        key="penedo2024",
+        authors=("Penedo, G.", "Kydlíček, H.", "Ben Allal, L.", "Lozhkov, A."),
+        truncated=True,
+        year=2024,
+        title=(
+            "The FineWeb datasets: Decanting the web for the finest "
+            "text data at scale"
+        ),
+        venue="Advances in Neural Information Processing Systems (Datasets and Benchmarks)",
+        arxiv="2406.17557",
+        url="",
+    ),
+    Reference(
+        key="lee2022",
+        authors=("Lee, K.", "Ippolito, D.", "Nystrom, A.", "Zhang, C."),
+        truncated=True,
+        year=2022,
+        title="Deduplicating training data makes language models better",
+        venue="Association for Computational Linguistics",
+        arxiv="2107.06499",
+        url="",
+    ),
+    Reference(
+        key="xie2023",
+        authors=("Xie, S. M.", "Pham, H.", "Dong, X.", "Du, N."),
+        truncated=True,
+        year=2023,
+        title="DoReMi: Optimizing data mixtures speeds up language model pretraining",
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2305.10429",
+        url="",
+    ),
+    Reference(
+        key="muennighoff2023",
+        authors=("Muennighoff, N.", "Rush, A. M.", "Barak, B.", "Le Scao, T."),
+        truncated=True,
+        year=2023,
+        title="Scaling data-constrained language models",
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2305.16264",
+        url="",
+    ),
+    # ---- Training dynamics (Part II) ----------------------------------------
+    Reference(
+        key="goyal2017",
+        authors=("Goyal, P.", "Dollár, P.", "Girshick, R.", "Noordhuis, P."),
+        truncated=True,
+        year=2017,
+        title="Accurate, large minibatch SGD: Training ImageNet in 1 hour",
+        venue="arXiv preprint",
+        arxiv="1706.02677",
+        url="",
+    ),
+    Reference(
+        key="mccandlish2018",
+        authors=("McCandlish, S.", "Kaplan, J.", "Amodei, D.", "OpenAI Dota Team"),
+        truncated=False,
+        year=2018,
+        title="An empirical model of large-batch training",
+        venue="arXiv preprint",
+        arxiv="1812.06162",
+        url="",
+    ),
+    Reference(
+        key="loshchilov2017",
+        authors=("Loshchilov, I.", "Hutter, F."),
+        truncated=False,
+        year=2017,
+        title="SGDR: Stochastic gradient descent with warm restarts",
+        venue="International Conference on Learning Representations",
+        arxiv="1608.03983",
+        url="",
+    ),
+    Reference(
+        key="chowdhery2023",
+        authors=("Chowdhery, A.", "Narang, S.", "Devlin, J.", "Bosma, M."),
+        truncated=True,
+        year=2023,
+        title="PaLM: Scaling language modeling with Pathways",
+        venue="Journal of Machine Learning Research, 24(240)",
+        arxiv="2204.02311",
+        url="",
+    ),
+    Reference(
+        key="zoph2022",
+        authors=("Zoph, B.", "Bello, I.", "Kumar, S.", "Du, N."),
+        truncated=True,
+        year=2022,
+        title="ST-MoE: Designing stable and transferable sparse expert models",
+        venue="arXiv preprint",
+        arxiv="2202.08906",
+        url="",
+    ),
+    Reference(
+        key="zhang2022",
+        authors=("Zhang, S.", "Roller, S.", "Goyal, N.", "Artetxe, M."),
+        truncated=True,
+        year=2022,
+        title="OPT: Open pre-trained transformer language models",
+        venue="arXiv preprint",
+        arxiv="2205.01068",
+        url="",
+    ),
+    Reference(
+        key="hu2024",
+        authors=("Hu, S.", "Tu, Y.", "Han, X.", "He, C."),
+        truncated=True,
+        year=2024,
+        title=(
+            "MiniCPM: Unveiling the potential of small language models "
+            "with scalable training strategies"
+        ),
+        venue="arXiv preprint",
+        arxiv="2404.06395",
+        url="",
+    ),
+    # ---- Distributed training (Part II) --------------------------------------
+    Reference(
+        key="rajbhandari2020",
+        authors=("Rajbhandari, S.", "Rasley, J.", "Ruwase, O.", "He, Y."),
+        truncated=False,
+        year=2020,
+        title="ZeRO: Memory optimizations toward training trillion parameter models",
+        venue=(
+            "International Conference for High Performance Computing, "
+            "Networking, Storage and Analysis (SC20)"
+        ),
+        arxiv="1910.02054",
+        url="",
+    ),
+    Reference(
+        key="zhao2023",
+        authors=("Zhao, Y.", "Gu, A.", "Varma, R.", "Luo, L."),
+        truncated=True,
+        year=2023,
+        title="PyTorch FSDP: Experiences on scaling fully sharded data parallel",
+        venue="Proceedings of the VLDB Endowment, 16(12)",
+        arxiv="2304.11277",
+        url="",
+    ),
+    Reference(
+        key="shoeybi2019",
+        authors=(
+            "Shoeybi, M.",
+            "Patwary, M.",
+            "Puri, R.",
+            "LeGresley, P.",
+            "Casper, J.",
+            "Catanzaro, B.",
+        ),
+        truncated=False,
+        year=2019,
+        title=(
+            "Megatron-LM: Training multi-billion parameter language models "
+            "using model parallelism"
+        ),
+        venue="arXiv preprint",
+        arxiv="1909.08053",
+        url="",
+    ),
+    Reference(
+        key="huang2019",
+        authors=("Huang, Y.", "Cheng, Y.", "Bapna, A.", "Firat, O."),
+        truncated=True,
+        year=2019,
+        title=(
+            "GPipe: Efficient training of giant neural networks "
+            "using pipeline parallelism"
+        ),
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="1811.06965",
+        url="",
+    ),
+    Reference(
+        key="narayanan2021",
+        authors=("Narayanan, D.", "Shoeybi, M.", "Casper, J.", "LeGresley, P."),
+        truncated=True,
+        year=2021,
+        title=(
+            "Efficient large-scale language model training on GPU clusters "
+            "using Megatron-LM"
+        ),
+        venue=(
+            "International Conference for High Performance Computing, "
+            "Networking, Storage and Analysis (SC21)"
+        ),
+        arxiv="2104.04473",
+        url="",
+    ),
+    # ---- Scaling laws (Part II) ----------------------------------------------
+    Reference(
+        key="sardana2024",
+        authors=("Sardana, N.", "Portes, J.", "Doubov, S.", "Frankle, J."),
+        truncated=False,
+        year=2024,
+        title=(
+            "Beyond Chinchilla-optimal: Accounting for inference in "
+            "language model scaling laws"
+        ),
+        venue="International Conference on Machine Learning",
+        arxiv="2401.00448",
+        url="",
+    ),
 )
 
 

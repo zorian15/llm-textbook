@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Tensor parallelism slices within layers; pipeline parallelism slices between them.">
+<text x="40.0" y="36.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">TENSOR PARALLEL: SPLIT EVERY LAYER</text>
+<text x="400.0" y="36.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">PIPELINE PARALLEL: SPLIT THE STACK</text>
+<defs><marker id="tparrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#cfcdc4"/></marker></defs>
+<rect x="40.0" y="64" width="55.0" height="46" fill="#274b6d" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="95.0" y="64" width="55.0" height="46" fill="#6b4f9c" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="150.0" y="64" width="55.0" height="46" fill="#9c6b12" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="205.0" y="64" width="55.0" height="46" fill="#b04a3f" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<text x="272" y="91.0" font-size="10" fill="#b04a3f">all-reduce</text>
+<path d="M 150.0 112 L 150.0 121" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#tparrow)"/>
+<rect x="40.0" y="124" width="55.0" height="46" fill="#274b6d" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="95.0" y="124" width="55.0" height="46" fill="#6b4f9c" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="150.0" y="124" width="55.0" height="46" fill="#9c6b12" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="205.0" y="124" width="55.0" height="46" fill="#b04a3f" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<text x="272" y="151.0" font-size="10" fill="#b04a3f">all-reduce</text>
+<path d="M 150.0 172 L 150.0 181" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#tparrow)"/>
+<rect x="40.0" y="184" width="55.0" height="46" fill="#274b6d" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="95.0" y="184" width="55.0" height="46" fill="#6b4f9c" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="150.0" y="184" width="55.0" height="46" fill="#9c6b12" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<rect x="205.0" y="184" width="55.0" height="46" fill="#b04a3f" opacity="0.75" stroke="#ffffff" stroke-width="1.5"/>
+<text x="272" y="211.0" font-size="10" fill="#b04a3f">all-reduce</text>
+<text x="40" y="262" font-size="10.5" fill="#6a6d73">Every GPU touches every layer; communication</text>
+<text x="40" y="276" font-size="10.5" fill="#6a6d73">on every layer&#8217;s critical path &#8594; needs NVLink.</text>
+<rect x="400" y="64" width="240" height="14" rx="3" fill="#274b6d" opacity="0.75"/>
+<rect x="400" y="81" width="240" height="14" rx="3" fill="#274b6d" opacity="0.75"/>
+<rect x="400" y="98" width="240" height="14" rx="3" fill="#274b6d" opacity="0.75"/>
+<text x="650" y="86" font-size="10" fill="#274b6d">GPU 0</text>
+<path d="M 520.0 114 L 520.0 121" stroke="#3b3d42" stroke-width="1.4" marker-end="url(#tparrow)"/>
+<rect x="400" y="123" width="240" height="14" rx="3" fill="#6b4f9c" opacity="0.75"/>
+<rect x="400" y="140" width="240" height="14" rx="3" fill="#6b4f9c" opacity="0.75"/>
+<rect x="400" y="157" width="240" height="14" rx="3" fill="#6b4f9c" opacity="0.75"/>
+<text x="650" y="145" font-size="10" fill="#6b4f9c">GPU 1</text>
+<path d="M 520.0 173 L 520.0 180" stroke="#3b3d42" stroke-width="1.4" marker-end="url(#tparrow)"/>
+<rect x="400" y="182" width="240" height="14" rx="3" fill="#9c6b12" opacity="0.75"/>
+<rect x="400" y="199" width="240" height="14" rx="3" fill="#9c6b12" opacity="0.75"/>
+<rect x="400" y="216" width="240" height="14" rx="3" fill="#9c6b12" opacity="0.75"/>
+<text x="650" y="204" font-size="10" fill="#9c6b12">GPU 2</text>
+<path d="M 520.0 232 L 520.0 239" stroke="#3b3d42" stroke-width="1.4" marker-end="url(#tparrow)"/>
+<rect x="400" y="241" width="240" height="14" rx="3" fill="#b04a3f" opacity="0.75"/>
+<rect x="400" y="258" width="240" height="14" rx="3" fill="#b04a3f" opacity="0.75"/>
+<rect x="400" y="275" width="240" height="14" rx="3" fill="#b04a3f" opacity="0.75"/>
+<text x="650" y="263" font-size="10" fill="#b04a3f">GPU 3</text>
+<text x="400" y="318" font-size="10.5" fill="#6a6d73">One activation handoff per boundary &#8594; crosses</text>
+<text x="400" y="332" font-size="10.5" fill="#6a6d73">nodes happily, but idles while filling and draining.</text>
+</svg>

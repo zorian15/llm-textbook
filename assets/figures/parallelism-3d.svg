@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Tensor, pipeline, and data parallelism composed across a cluster.">
+<defs><marker id="pararrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#cfcdc4"/></marker></defs>
+<text x="96.0" y="34.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">PIPELINE ACROSS NODES (ONE MODEL INSTANCE)</text>
+<text x="20" y="89.0" font-size="11" font-weight="700" fill="#17181b">replica 0</text>
+<rect x="96" y="48" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="108" y="68" font-size="10.5" font-weight="600" fill="#17181b">stage 0</text>
+<circle cx="110" cy="82" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="126" cy="82" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="142" cy="82" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="158" cy="82" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="110" cy="98" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="126" cy="98" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="142" cy="98" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="158" cy="98" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="178" y="100" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<path d="M 230 85.0 L 240 85.0" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#pararrow)"/>
+<rect x="244" y="48" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="256" y="68" font-size="10.5" font-weight="600" fill="#17181b">stage 1</text>
+<circle cx="258" cy="82" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="274" cy="82" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="290" cy="82" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="306" cy="82" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="258" cy="98" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="274" cy="98" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="290" cy="98" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="306" cy="98" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="326" y="100" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<path d="M 378 85.0 L 388 85.0" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#pararrow)"/>
+<rect x="392" y="48" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="404" y="68" font-size="10.5" font-weight="600" fill="#17181b">stage 2</text>
+<circle cx="406" cy="82" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="422" cy="82" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="438" cy="82" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="454" cy="82" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="406" cy="98" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="422" cy="98" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="438" cy="98" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="454" cy="98" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="474" y="100" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<path d="M 526 85.0 L 536 85.0" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#pararrow)"/>
+<rect x="540" y="48" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="552" y="68" font-size="10.5" font-weight="600" fill="#17181b">stage 3</text>
+<circle cx="554" cy="82" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="570" cy="82" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="586" cy="82" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="602" cy="82" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="554" cy="98" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="570" cy="98" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="586" cy="98" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="602" cy="98" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="622" y="100" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<text x="20" y="207.0" font-size="11" font-weight="700" fill="#17181b">replica 1</text>
+<rect x="96" y="166" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="108" y="186" font-size="10.5" font-weight="600" fill="#17181b">stage 0</text>
+<circle cx="110" cy="200" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="126" cy="200" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="142" cy="200" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="158" cy="200" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="110" cy="216" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="126" cy="216" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="142" cy="216" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="158" cy="216" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="178" y="218" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<path d="M 230 203.0 L 240 203.0" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#pararrow)"/>
+<rect x="244" y="166" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="256" y="186" font-size="10.5" font-weight="600" fill="#17181b">stage 1</text>
+<circle cx="258" cy="200" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="274" cy="200" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="290" cy="200" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="306" cy="200" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="258" cy="216" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="274" cy="216" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="290" cy="216" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="306" cy="216" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="326" y="218" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<path d="M 378 203.0 L 388 203.0" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#pararrow)"/>
+<rect x="392" y="166" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="404" y="186" font-size="10.5" font-weight="600" fill="#17181b">stage 2</text>
+<circle cx="406" cy="200" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="422" cy="200" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="438" cy="200" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="454" cy="200" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="406" cy="216" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="422" cy="216" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="438" cy="216" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="454" cy="216" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="474" y="218" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<path d="M 526 203.0 L 536 203.0" stroke="#cfcdc4" stroke-width="1.4" marker-end="url(#pararrow)"/>
+<rect x="540" y="166" width="132" height="74" rx="8" fill="#ffffff" stroke="#cfcdc4"/>
+<text x="552" y="186" font-size="10.5" font-weight="600" fill="#17181b">stage 3</text>
+<circle cx="554" cy="200" r="5.5" fill="#274b6d" opacity="0.55"/>
+<circle cx="570" cy="200" r="5.5" fill="#274b6d" opacity="0.6000000000000001"/>
+<circle cx="586" cy="200" r="5.5" fill="#274b6d" opacity="0.65"/>
+<circle cx="602" cy="200" r="5.5" fill="#274b6d" opacity="0.7000000000000001"/>
+<circle cx="554" cy="216" r="5.5" fill="#274b6d" opacity="0.75"/>
+<circle cx="570" cy="216" r="5.5" fill="#274b6d" opacity="0.8"/>
+<circle cx="586" cy="216" r="5.5" fill="#274b6d" opacity="0.8500000000000001"/>
+<circle cx="602" cy="216" r="5.5" fill="#274b6d" opacity="0.9000000000000001"/>
+<text x="622" y="218" font-size="9" fill="#6a6d73">TP &#215; 8</text>
+<text x="96" y="148" font-size="10.5" fill="#6b4f9c" font-weight="600">data parallelism: replicas sync gradients once per step</text>
+<text x="96" y="264" font-size="13" fill="#6a6d73">&#8942;</text>
+<text x="116" y="264" font-size="10.5" fill="#6a6d73">&#215; 128 replicas &#8594; 8 (TP) &#183; 16 (PP) &#183; 128 (DP) &#8776; 16k GPUs</text>
+<text x="96" y="290" font-size="10.5" fill="#6a6d73" font-style="italic">Chattiest parallelism, fastest links: TP inside the node, PP across nodes, DP across everything.</text>
+</svg>
