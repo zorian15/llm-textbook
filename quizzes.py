@@ -1275,6 +1275,628 @@ _QUIZZES: dict[str, tuple[Question, ...]] = {
             ),
         ),
     ),
+"sft": (
+        Question(
+            prompt=(
+                "A team fine-tunes a base model on 100,000 high-quality demonstrations "
+                "that include many facts the base model never saw in pretraining. After "
+                "SFT the model states those facts fluently but is wrong about them, and "
+                "about nearby questions, more often than before. What best explains this?"
+            ),
+            options=(
+                "SFT clones the behavior of confident answering but cannot install facts "
+                "the base model lacked, and fitting those examples raises its tendency to "
+                "hallucinate on related questions.",
+                "The demonstrations overwrote the model's pretraining knowledge through "
+                "catastrophic forgetting, so it lost facts it had previously held "
+                "reliably and now confabulates in their place.",
+                "The learning rate was too high, so the model memorized the "
+                "demonstrations verbatim rather than generalizing from them.",
+                "One hundred thousand examples is simply too few to teach new facts; "
+                "scaling the SFT set another order of magnitude would resolve the errors.",
+            ),
+            answer=0,
+            explanation=(
+                "Gekhman et al. (2024) found that examples introducing new knowledge are "
+                "learned slowly, and as the model finally fits them its overall "
+                "hallucination rate rises. SFT shapes behavior, not knowledge, so it "
+                "teaches the model to answer as confidently when guessing as when it "
+                "knows. This is distinct from catastrophic forgetting, which is the "
+                "erosion of general capability from over-tuning, not a fact-specific "
+                "effect — and adding more of the same out-of-knowledge data makes it "
+                "worse, not better."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Standard SFT computes the loss only on the assistant's tokens, masking "
+                "the system and user tokens. What is the main consequence of instead "
+                "training on every token in each conversation?"
+            ),
+            options=(
+                "The model spends capacity learning to generate user messages and prompt "
+                "boilerplate, biasing it toward parroting inputs and diluting the signal "
+                "for producing good responses.",
+                "It leaks future assistant tokens back into the earlier prompt positions, "
+                "so the held-out loss looks artificially low while the model has secretly "
+                "been reading ahead throughout training.",
+                "The model can no longer learn when to stop, because the end-of-turn "
+                "token would then be excluded from the loss along with the prompt.",
+                "Nothing about the trained behavior changes; prompt masking is purely a "
+                "compute optimization that skips gradient on some tokens.",
+            ),
+            answer=0,
+            explanation=(
+                "The task is to map a prompt to a good completion, so the gradient should "
+                "come only from the completion. Training on the prompt teaches the model "
+                "to predict user messages, which wastes capacity. The leakage option "
+                "confuses loss masking with the causal mask, which already prevents "
+                "reading ahead; and the end-of-turn token is part of the completion, so "
+                "it stays unmasked precisely so the model learns to stop."
+            ),
+        ),
+        Question(
+            prompt=(
+                "LIMA aligned a strong base model into a competitive assistant using only "
+                "about 1,000 curated demonstrations and no reinforcement learning. Which "
+                "conclusion does this most directly support?"
+            ),
+            options=(
+                "Most capability is acquired during pretraining, and SFT mainly selects "
+                "format and style, so a small, diverse, high-quality set can be enough to "
+                "surface it.",
+                "Alignment quality scales smoothly with the number of SFT examples, and "
+                "1,000 simply happened to land on an unusually data-efficient operating "
+                "point for this model.",
+                "A sufficiently strong base model is already an aligned assistant, so the "
+                "instruction-tuning step is essentially optional in practice.",
+                "Reinforcement learning is strictly inferior to supervised fine-tuning "
+                "for alignment, since LIMA matched RLHF-trained systems without using it.",
+            ),
+            answer=0,
+            explanation=(
+                "This is the superficial alignment hypothesis (Zhou et al., 2023): "
+                "knowledge and skills come from pretraining, and alignment largely "
+                "teaches the style in which to expose them. The base model still needs "
+                "SFT — it is not aligned by default — and preference optimization "
+                "(Chapters 11-12) still adds value beyond demonstrations, so the lesson "
+                "is about quality and diversity, not a magic example count."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A well-tuned instruct model gives rambling, lower-quality answers in "
+                "production, even though the identical weights scored well in your offline "
+                "eval harness. What is the most likely single cause?"
+            ),
+            options=(
+                "The serving stack wraps prompts in a chat template that differs from the "
+                "one used during SFT, so the special role tokens the model depends on are "
+                "missing or malformed.",
+                "The model was quantized to 4-bit for serving, and low-bit quantization "
+                "is widely understood to strip learned instruction-following behavior "
+                "out of a fine-tuned model almost entirely.",
+                "The decoding temperature is pinned at zero, which collapses generation "
+                "into degenerate greedy repetition loops.",
+                "The KV cache is silently corrupting earlier tokens as the context grows "
+                "over the course of a long generation.",
+            ),
+            answer=0,
+            explanation=(
+                "A template mismatch between training and serving is a classic deployment "
+                "bug (Chapter 18): the model keys on role tokens like the assistant "
+                "marker, and without them it falls back toward base-model continuation. "
+                "Quantization rarely erases instruction-following, greedy decoding is a "
+                "normal default, and a correct KV cache reproduces full-context "
+                "attention exactly."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You scale SFT by distilling 500,000 demonstrations from a stronger "
+                "model. Held-out human ratings of your responses jump, but accuracy on a "
+                "factual knowledge benchmark barely moves and dips slightly. What is the "
+                "best explanation?"
+            ),
+            options=(
+                "SFT mainly shapes presentation, so distillation reliably improves "
+                "fluency, formatting, and confidence — which lift subjective ratings — "
+                "without adding the knowledge the benchmark measures.",
+                "Distilled data always inherits the teacher model's factual errors, and "
+                "propagating those specific mistakes into your own model is the sole "
+                "reason the benchmark accuracy declined after fine-tuning.",
+                "The knowledge benchmark must be contaminated, so its scores stopped "
+                "being meaningful once you fine-tuned on any new data at all.",
+                "The rating gain is measurement noise; with 500,000 examples, ratings and "
+                "accuracy are guaranteed to move together.",
+            ),
+            answer=0,
+            explanation=(
+                "Because SFT surfaces behavior the base model already has, polishing "
+                "presentation raises perceived quality without teaching facts — the "
+                "'style over substance' trap. Distillation can propagate a teacher's "
+                "errors, but framing that as the 'sole' cause and 'always' true overstates "
+                "it; and ratings and benchmark accuracy routinely diverge precisely "
+                "because they measure different things."
+            ),
+        ),
+    ),
+
+"rlhf": (
+        Question(
+            prompt=(
+                "A reward model trained with the Bradley-Terry objective scores one "
+                "response 8.3 and another 2.1. A teammate concludes the first response "
+                "is 'about four times as good.' What is the mistake?"
+            ),
+            options=(
+                "The loss constrains only the difference of the two rewards, so the "
+                "scale and zero point are arbitrary; higher-versus-lower is meaningful, "
+                "but ratios of scores are not.",
+                "The outputs are calibrated log-odds that a response is preferred, so "
+                "the sound move is to exponentiate the difference of the two scores "
+                "rather than divide them, which would place the comparison on a "
+                "probability scale instead.",
+                "Reward models are trained to regress onto human one-to-ten ratings, so "
+                "the two scores are valid, but the ratio only holds once both have been "
+                "renormalized onto the unit interval first.",
+                "The two scores come from separate forward passes and are therefore not "
+                "comparable at all unless the two responses happen to be scored "
+                "together within one batch.",
+            ),
+            answer=0,
+            explanation=(
+                "The Bradley-Terry loss is a logistic loss on r_w minus r_l, so adding "
+                "any constant to every reward leaves both the loss and the downstream "
+                "policy update unchanged. The reward is an interval scale with no fixed "
+                "zero: the difference r_w minus r_l is a preference logit, but a single "
+                "score's magnitude and any ratio of scores carry no meaning."
+            ),
+        ),
+        Question(
+            prompt=(
+                "In PPO-based RLHF the objective is the reward-model score minus a KL "
+                "penalty against a frozen reference model. If you set the KL "
+                "coefficient to zero, what happens?"
+            ),
+            options=(
+                "The policy drifts freely toward whatever maximizes the reward model, "
+                "which usually means degenerate, non-fluent text that games its blind "
+                "spots rather than better answers.",
+                "The policy trains faster and reaches a higher true reward, because the "
+                "KL term only ever slows convergence toward the reward model's optimum "
+                "without changing the quality of the final model it lands on.",
+                "Training diverges almost at once, because the advantage estimates go "
+                "undefined once there is no reference distribution left to normalize "
+                "the policy's updates against.",
+                "Little changes in practice, since the reward model already penalizes "
+                "low-fluency text on its own, which makes the separate KL term largely "
+                "redundant during optimization.",
+            ),
+            answer=0,
+            explanation=(
+                "The KL leash keeps the policy near a model that already writes well "
+                "and knows things, so it improves within the space of good answers. "
+                "Remove it and the policy sprints toward the reward model's highest-"
+                "scoring strings, which are rarely fluent. Too large a coefficient is "
+                "the opposite failure: the policy barely moves. The advantage estimate "
+                "comes from the critic and does not depend on the reference."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Throughout an RLHF run, the reward-model score on your policy's own "
+                "samples rises steadily. What does that tell you about the model's "
+                "actual quality?"
+            ),
+            options=(
+                "Little on its own: the proxy score can climb while true quality peaks "
+                "then declines, so finding the real optimum needs an independent "
+                "yardstick like held-out human evals.",
+                "It confirms steady, reliable improvement, because the reward model was "
+                "trained specifically to predict human preference and its score is "
+                "therefore the best available proxy for the model's true quality.",
+                "It signals that the KL penalty has been set too weak, because a "
+                "properly regularized run should show the reward-model score plateau "
+                "early rather than keep on climbing.",
+                "It means the reward model has overfit its own training comparisons, so "
+                "the steadily rising score reflects memorization of those pairs rather "
+                "than the policy actually improving.",
+            ),
+            answer=0,
+            explanation=(
+                "Gao et al. (2023) measured this directly: as the policy moves away "
+                "from the reference, the proxy reward rises monotonically while the "
+                "gold reward rises, peaks, and falls. The metric you are training on is "
+                "exactly the one being compromised, so it cannot audit itself, which is "
+                "why over-optimization is caught only with a separate evaluator."
+            ),
+        ),
+        Question(
+            prompt=(
+                "After RLHF your model's answers are noticeably longer and more hedged, "
+                "and its win rate against the SFT model went up. A skeptic asks how "
+                "much of the gain is real. Why is that a fair question?"
+            ),
+            options=(
+                "Reward models systematically prefer longer answers, and much of "
+                "RLHF's measured gain can be reproduced by a reward that counts only "
+                "length, so verbosity inflates the apparent improvement.",
+                "Longer answers cost proportionally more tokens to generate and serve, "
+                "so even a perfectly genuine quality gain might not be worth the extra "
+                "inference expense that all the added verbosity introduces.",
+                "The win rates are judged by the very same reward model that was used "
+                "during training, so they are entirely circular and cannot demonstrate "
+                "any real improvement whatsoever.",
+                "RLHF inherently trades response length off against factual accuracy, "
+                "so the longer answers are necessarily less accurate and the entire "
+                "measured gain must therefore be an illusion.",
+            ),
+            answer=0,
+            explanation=(
+                "Singhal et al. (2023) found response length is a dominant factor in "
+                "RLHF's gains: a purely length-based reward reproduces most of the "
+                "downstream improvement over SFT. Length is thus a form of reward "
+                "hacking, which is why serious evaluations control for it (length-"
+                "penalized rewards or length-controlled win rates) before crediting a "
+                "real quality gain."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why does PPO-based RLHF sample fresh responses from the current policy "
+                "at each step, instead of reusing a fixed dataset of responses the way "
+                "supervised fine-tuning does?"
+            ),
+            options=(
+                "The useful signal is which of the policy's own current outputs are "
+                "better, and that region shifts as the policy improves, so on-policy "
+                "samples keep the data matched to the current policy.",
+                "A fixed dataset is off-policy, and PPO's importance-sampling ratio is "
+                "valid only for data drawn from the exact current policy, so any reuse "
+                "of earlier samples at all makes the resulting update mathematically "
+                "invalid.",
+                "Reusing responses would gradually leak the reward model's parameters "
+                "into the policy network, eventually causing the two separately trained "
+                "models to collapse into one.",
+                "SFT reuses its data only because its targets are human-written, and "
+                "PPO could reuse a fixed dataset equally well but samples fresh "
+                "responses purely to increase output diversity.",
+            ),
+            answer=0,
+            explanation=(
+                "Reinforcement learning optimizes the policy's own output "
+                "distribution, so as the policy moves, stale samples describe a policy "
+                "you no longer have. PPO does use a clipped importance-sampling ratio "
+                "and can safely reuse each batch for a few inner epochs, so the "
+                "'exact current policy or nothing' framing overstates the constraint, "
+                "but the samples must stay close to the current policy."
+            ),
+        ),
+    ),
+
+"preference-optimization": (
+        Question(
+            prompt=(
+                "DPO is often described as training with 'no reward model.' In what "
+                "sense does a reward still exist in the DPO objective?"
+            ),
+            options=(
+                "There is no reward in any form; DPO simply maximizes the likelihood "
+                "of the chosen response, exactly like supervised fine-tuning "
+                "restricted to the winning answer in each preference pair.",
+                "The reward is implicit: beta times the log-ratio of the policy to the "
+                "reference, which DPO fits through the Bradley-Terry likelihood.",
+                "A reward model trained separately is loaded and frozen, so DPO skips "
+                "the cost of fitting a new one but still scores each candidate "
+                "response with it before every gradient update.",
+                "The reward is the KL divergence between the policy and the reference, "
+                "and DPO maximizes it to keep the sampled responses diverse.",
+            ),
+            answer=1,
+            explanation=(
+                "DPO reparameterizes the RLHF reward as beta*log(pi/pi_ref). Because "
+                "the optimal RLHF policy is a closed-form function of the reward, you "
+                "can invert it and express the reward through the policy, then plug "
+                "that into Bradley-Terry so the partition function cancels. The reward "
+                "never disappears; it is just never materialized as a separate network."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why does DPO keep a frozen reference model in every term of its loss, "
+                "rather than simply raising the probability of chosen responses and "
+                "lowering rejected ones?"
+            ),
+            options=(
+                "The reference supplies the tokenizer, vocabulary, and embedding table "
+                "the policy depends on, so without it the per-token log-probabilities "
+                "in the loss would be computed over mismatched output spaces.",
+                "The reference is only a warm start used to initialize the policy, and "
+                "it is discarded after the first gradient step, so it never actually "
+                "appears in the loss being optimized.",
+                "The reference lets DPO skip the supervised fine-tuning stage entirely, "
+                "since it already encodes the demonstrations the policy would "
+                "otherwise need to imitate first.",
+                "The log-ratio against the reference is the KL leash: it bounds how far "
+                "the policy may drift, so quality does not collapse while chasing a "
+                "wider preference margin.",
+            ),
+            answer=3,
+            explanation=(
+                "The reference plays the role PPO's KL penalty played: beta*log(pi/"
+                "pi_ref) charges the policy for moving away from the reference. Remove "
+                "it and the loss rewards inflating the winner's probability without "
+                "bound, which wrecks fluency. It is an anchor, not an initializer, and "
+                "it is queried on every batch."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Users report that a DPO-tuned model gives noticeably longer answers "
+                "than the SFT model it started from, without a clear gain in quality. "
+                "What is the most likely cause?"
+            ),
+            options=(
+                "The KL penalty term in DPO scales with sequence length, which "
+                "pressures the policy to emit extra tokens on every response just to "
+                "keep its divergence from the reference model satisfied.",
+                "DPO raises the decoding temperature as a side effect of optimizing "
+                "the preference margin, flattening the next-token distribution so "
+                "generations tend to run on longer than before.",
+                "DPO sums per-token log-probabilities, so a longer rejected response is "
+                "easier to push down; the model learns that extra length looks "
+                "preferred.",
+                "The frozen reference model has a shorter context window than the "
+                "policy, so DPO compensates by padding each response until the two "
+                "windows are the same size.",
+            ),
+            answer=2,
+            explanation=(
+                "This is DPO's well-known length bias: because the implicit reward is a "
+                "sum of token log-probabilities, response length leaks into the signal "
+                "as a confound. Length-normalizing the reward (as SimPO does) or "
+                "balancing chosen/rejected lengths in the data removes the artifact; "
+                "raw win-rate gains from longer outputs are usually not real quality."
+            ),
+        ),
+        Question(
+            prompt=(
+                "KTO differs from DPO most fundamentally in which respect?"
+            ),
+            options=(
+                "It runs an on-policy sampling loop like PPO, regenerating fresh "
+                "responses from the current model at every step instead of reading "
+                "from a fixed dataset collected in advance.",
+                "It removes the reference model and normalizes the reward by response "
+                "length, which makes each update cheaper to compute than DPO's "
+                "reference-anchored objective.",
+                "It merges supervised fine-tuning and preference optimization into a "
+                "single training stage, so no separate SFT run is required before "
+                "alignment begins.",
+                "It learns from unpaired responses labeled individually as desirable or "
+                "undesirable, rather than from matched chosen-versus-rejected pairs.",
+            ),
+            answer=3,
+            explanation=(
+                "KTO's signature is dropping the pairing requirement: grounded in "
+                "prospect theory's asymmetric weighting of gains and losses, it trains "
+                "on lone good/bad labels. That matters practically because unpaired "
+                "binary feedback (thumbs up/down) is far more abundant than curated "
+                "pairs. Merging SFT with preference is ORPO; reference-free length "
+                "normalization is SimPO; on-policy sampling is PPO."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Careful head-to-head studies of DPO and PPO have complicated the claim "
+                "that one is simply better. What is the best summary of current "
+                "understanding?"
+            ),
+            options=(
+                "DPO is strictly superior because it optimizes exactly the same "
+                "objective as PPO but with lower gradient variance, so PPO offers no "
+                "measurable advantage at any compute budget you might pick.",
+                "Whether training uses on-policy data matters more than the loss form: "
+                "well-tuned PPO and iterative on-policy DPO both beat vanilla "
+                "off-policy DPO, and data quality dominates the algorithm choice.",
+                "PPO is always better because reinforcement learning actively explores "
+                "the output space, whereas DPO can only imitate the fixed preference "
+                "dataset it was handed at the start of training.",
+                "The two methods are mathematically identical in the infinite-data "
+                "limit, so any measured gap between them is attributable entirely to "
+                "random seeds and evaluation noise.",
+            ),
+            answer=1,
+            explanation=(
+                "The empirical picture is that on-policy sampling and preference-data "
+                "quality are the load-bearing factors. Vanilla DPO is off-policy and "
+                "can drift off the data it learned from; iterative/online DPO recovers "
+                "much of PPO's edge without the RL machinery. PPO can still win on hard "
+                "tasks like code, but the algorithm name is not the main lever."
+            ),
+        ),
+        Question(
+            prompt=(
+                "In Constitutional AI, what specifically replaces the human labeler, and "
+                "what is the main risk it introduces?"
+            ),
+            options=(
+                "A second, larger reward model replaces the annotator, and the main "
+                "risk is that it becomes too expensive to train, which makes the whole "
+                "method impractical below frontier scale.",
+                "A written set of principles the model applies to critique, revise, and "
+                "rank its own outputs; the risk is that the judge's biases and "
+                "gameability leak into the preference signal.",
+                "A retrieval system that pulls ground-truth answers from a curated "
+                "knowledge base, and the main risk is that stale documents yield "
+                "outdated or subtly incorrect preferences.",
+                "Random pairing of responses with fixed heuristic scores, and the main "
+                "risk is the high variance of that signal, which destabilizes the "
+                "reinforcement-learning loop downstream.",
+            ),
+            answer=1,
+            explanation=(
+                "Constitutional AI substitutes a short written constitution for the "
+                "human annotator: the model self-critiques and revises against it "
+                "(supervised phase) and judges its own samples against it (preference "
+                "phase, the RLAIF idea). The signal scales as cheaply as inference, but "
+                "it inherits the judge's blind spots and can be reward-hacked to satisfy "
+                "the letter of the rules, which is why scaling trustworthy oversight is "
+                "still open."
+            ),
+        ),
+    ),
+
+"peft": (
+        Question(
+            prompt=(
+                "A 7B model that infers comfortably on one GPU runs out of memory the "
+                "moment you full-fine-tune it. LoRA fixes this. What is the primary "
+                "thing LoRA removes from the memory bill?"
+            ),
+            options=(
+                "The gradients, fp32 master copy, and two AdamW moments for the "
+                "billions of frozen weights, since a frozen tensor needs none of "
+                "them and only the tiny adapter carries optimizer state.",
+                "The frozen base weights themselves, since a low-rank adapter can "
+                "reconstruct them from its two factors on the fly, so the full-size "
+                "matrix never has to sit resident in GPU memory at any point in the "
+                "run.",
+                "The stored activations for the backward pass, which LoRA "
+                "recomputes tile by tile instead of keeping, the way gradient "
+                "checkpointing does.",
+                "The key-value cache, which full fine-tuning materializes for "
+                "every training position but LoRA is able to stream lazily from "
+                "host memory.",
+            ),
+            answer=0,
+            explanation=(
+                "Mixed-precision AdamW costs about 16 bytes per parameter, and 12 of "
+                "them are optimizer state (Chapter 8). Freezing the base means those "
+                "billions of weights need no gradient, master copy, or moments; only "
+                "the adapter's few million parameters are taxed. The base weights are "
+                "still held, just once and read-only, shared across every task."
+            ),
+        ),
+        Question(
+            prompt=(
+                "An interviewer asks whether adding LoRA to a deployed model slows "
+                "down inference. What is the accurate answer?"
+            ),
+            options=(
+                "Yes, slightly and unavoidably: every adapted layer runs one extra "
+                "low-rank matmul per token, a small constant tax you pay on all "
+                "traffic once the adapter is attached, and no amount of fusing or "
+                "compilation can remove it because the factors stay separate.",
+                "No, if you merge the adapter: folding BA into the base weight "
+                "yields an ordinary matrix that runs at base speed, and you keep "
+                "it separate only when you deliberately want to serve many "
+                "adapters at once.",
+                "Yes, in proportion to the rank r, because the model must "
+                "concatenate the r extra dimensions onto every hidden state before "
+                "the next layer can consume it.",
+                "No, and it actually speeds inference up, because the low-rank "
+                "factors shrink the effective weight matrices the hardware has to "
+                "stream from memory each step.",
+            ),
+            answer=1,
+            explanation=(
+                "Because W0 + (alpha/r)BA is just another weight matrix of the same "
+                "shape, a merged LoRA model is bit-for-bit as fast as the base. The "
+                "extra matmul only exists if you keep the adapter unmerged, which is a "
+                "deliberate choice for multi-adapter serving, not an inherent cost."
+            ),
+        ),
+        Question(
+            prompt=(
+                "LoRA constrains the weight update to a rank-r product BA. What is "
+                "the empirical justification for expecting that to work?"
+            ),
+            options=(
+                "Pretrained weight matrices are already close to low rank, so any "
+                "full-rank update would mostly land in directions the base model "
+                "cannot represent anyway and would be projected out and discarded "
+                "the moment the next layer consumes it.",
+                "Most weights in a trained transformer are effectively zero, so the "
+                "update only needs to touch the sparse nonzero entries, which a "
+                "low-rank factorization captures cheaply.",
+                "The change fine-tuning makes to a pretrained model has a low "
+                "intrinsic dimension: adaptation moves the weights along a handful "
+                "of directions, not across the full parameter space.",
+                "Attention itself is a low-rank operation, so confining the update "
+                "to low rank simply matches the rank the attention mechanism was "
+                "always going to impose downstream.",
+            ),
+            answer=2,
+            explanation=(
+                "The bet is about the update, not the weights. Aghajanyan et al. (2021) "
+                "showed fine-tuning has a small intrinsic dimension, tuning RoBERTa to "
+                "most of its performance through a few hundred projected parameters, "
+                "and that this dimension shrinks as models grow. LoRA operationalizes "
+                "that: force the update through a rank-r bottleneck."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A colleague says QLoRA 'trains the model in 4-bit.' Where is that "
+                "wrong, and what actually happens?"
+            ),
+            options=(
+                "The adapters are the 4-bit part; QLoRA keeps the base in bf16 and "
+                "learns tiny 4-bit factors on top, which is what makes the trained "
+                "state small enough to fit.",
+                "Nothing is wrong: QLoRA performs quantization-aware training, "
+                "learning weights that are specifically robust to being served at "
+                "4-bit precision afterward.",
+                "The base is stored in 4-bit NF4 but dequantized to bf16 for each "
+                "matmul; gradients flow through those bf16 values into bf16 "
+                "adapters, and the quantized weights are never updated.",
+                "The 4 bits refer to the optimizer, which QLoRA quantizes down to "
+                "4-bit moment states through its paged optimizers, while the base "
+                "weights and the adapters alike stay in full bf16 precision "
+                "throughout the entire run.",
+            ),
+            answer=2,
+            explanation=(
+                "QLoRA keeps 4 bits only to store the frozen base cheaply (Dettmers et "
+                "al., 2023). Each weight is dequantized to bf16 for its multiply, and "
+                "learning happens entirely in the bf16 adapters. Training a model to be "
+                "good at 4-bit inference is quantization-aware training, a different "
+                "problem (Chapter 16)."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You must serve fifty customer-specific fine-tunes of one 13B model "
+                "under a tight GPU budget. Why keep the LoRA adapters unmerged, "
+                "despite the small per-token overhead that adds?"
+            ),
+            options=(
+                "Unmerged adapters let one resident base copy back all fifty tenants, "
+                "and a batch mixing different adapters can share the base matmul "
+                "while each request applies its own low-rank term.",
+                "Merging is numerically lossy at 13B, so keeping adapters separate "
+                "is the only way to preserve each fine-tune's accuracy when many "
+                "of them share the same underlying weights.",
+                "Unmerged adapters can be quantized independently of the base, "
+                "which is what actually lets fifty of them fit, whereas a merged "
+                "model can no longer be quantized at all.",
+                "Merged models cannot be swapped without a full reload, so each of "
+                "the fifty tenants would require its own dedicated GPU to hold a "
+                "separate merged copy of the weights.",
+            ),
+            answer=0,
+            explanation=(
+                "Merging gives zero latency but a merged model serves exactly one "
+                "task, so a mixed batch cannot share a forward pass. Systems like "
+                "S-LoRA (Sheng et al., 2024) keep adapters separate, compute the base "
+                "matmul once per batch, and apply each request's BA with a custom "
+                "kernel, serving thousands of adapters near base throughput. The trade "
+                "is single-tenant latency versus many-tenant throughput."
+            ),
+        ),
+    ),
 }
 
 

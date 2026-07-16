@@ -3633,6 +3633,1427 @@ def fig_touch_icon() -> Path:
     return path
 
 
+
+# ---------------------------------------------------------------------------
+# Chapter figures: sft.
+# ---------------------------------------------------------------------------
+def fig_sft_behavior_cloning() -> Path:  # noqa: F405
+    """Diagram: curated demonstrations cloned into an assistant by next-token loss."""
+    width, height = 680, 300
+    body: list[str] = [eyebrow(24, 30, "SUPERVISED FINE-TUNING = BEHAVIOR CLONING")]
+
+    demos = [
+        ("Reverse this list.", "Use nums[::-1] to get a copy."),
+        ("Is 51 prime?", "No. 51 = 3 &#215; 17, so it is composite."),
+        ("Summarize this email.", "The sender asks to reschedule to Friday."),
+    ]
+    card_x, card_w, card_h = 24, 262, 54
+    y0 = 52
+    for i, (user_txt, asst_txt) in enumerate(demos):
+        y = y0 + i * (card_h + 8)
+        body.append(
+            f'<rect x="{card_x}" y="{y}" width="{card_w}" height="{card_h}" rx="8" '
+            f'fill="#ffffff" stroke="{RULE_STRONG}"/>'
+        )
+        body.append(f'<rect x="{card_x}" y="{y}" width="4" height="{card_h}" rx="2" fill="{ACCENT}"/>')
+        body.append(
+            f'<text x="{card_x + 16}" y="{y + 21}" font-size="9" font-weight="700" '
+            f'fill="{MUTED}" letter-spacing="0.5">USER</text>'
+        )
+        body.append(
+            f'<text x="{card_x + 58}" y="{y + 21}" font-size="10.5" fill="{INK_SOFT}">{user_txt}</text>'
+        )
+        body.append(
+            f'<text x="{card_x + 16}" y="{y + 42}" font-size="9" font-weight="700" '
+            f'fill="{ACCENT}" letter-spacing="0.5">ASST</text>'
+        )
+        body.append(
+            f'<text x="{card_x + 58}" y="{y + 42}" font-size="10.5" font-weight="600" '
+            f'fill="{ACCENT}">{asst_txt}</text>'
+        )
+
+    # The pipeline: base model, trained to reproduce the responses, becomes an assistant.
+    pipe_y = 138
+    base_x, base_w, base_h = 366, 116, 58
+    asst_x, asst_w = 548, 104
+
+    body.append(
+        f'<path d="M {card_x + card_w + 6} {pipe_y + base_h / 2} L {base_x - 6} '
+        f'{pipe_y + base_h / 2}" stroke="{RULE_STRONG}" stroke-width="1.6" '
+        f'marker-end="url(#sftc)"/>'
+    )
+    body.append(
+        f'<text x="{(card_x + card_w + base_x) / 2}" y="{pipe_y - 14}" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}">clone the</text>'
+    )
+    body.append(
+        f'<text x="{(card_x + card_w + base_x) / 2}" y="{pipe_y - 1}" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}">demonstrated</text>'
+    )
+    body.append(
+        f'<text x="{(card_x + card_w + base_x) / 2}" y="{pipe_y + 12}" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}">behavior</text>'
+    )
+
+    body += token_box(
+        base_x, pipe_y, base_w, base_h, "base model",
+        fill=ACCENT_SOFT, stroke=ACCENT, text_fill=ACCENT, font_size=12.5, weight=700,
+    )
+    body.append(
+        f'<path d="M {base_x + base_w + 6} {pipe_y + base_h / 2} L {asst_x - 6} '
+        f'{pipe_y + base_h / 2}" stroke="{ACCENT}" stroke-width="1.8" '
+        f'marker-end="url(#sftc2)"/>'
+    )
+    body.append(
+        f'<text x="{(base_x + base_w + asst_x) / 2}" y="{pipe_y + base_h / 2 - 8}" '
+        f'font-size="10" text-anchor="middle" fill="{MUTED}">SFT</text>'
+    )
+    body += token_box(
+        asst_x, pipe_y, asst_w, base_h, "assistant",
+        fill=ACCENT, stroke="none", text_fill="#ffffff", font_size=12.5, weight=700,
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Same next-token objective as pretraining, now '
+        f"on curated answers: the model copies the behavior, not new facts.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "sftc"))
+    body.append(arrow_marker(ACCENT, "sftc2"))
+    return write_svg(
+        "sft-behavior-cloning.svg",
+        svg_doc(width, height, "supervised fine-tuning as behavior cloning", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 10.2 — chat template and loss masking on the completion only.
+# ---------------------------------------------------------------------------
+
+
+def fig_chat_template_masking() -> Path:  # noqa: F405
+    """Diagram: role tokens delimit turns; loss falls only on the assistant tokens."""
+    width, height = 720, 288
+    body: list[str] = [eyebrow(24, 30, "ONE TRAINING EXAMPLE, AS THE MODEL SEES IT")]
+
+    rows = [
+        ("&lt;|system|&gt;", "You are a helpful assistant.", False),
+        ("&lt;|user|&gt;", "Is 51 prime?", False),
+        ("&lt;|assistant|&gt;", "No. 51 = 3 &#215; 17, so composite. &lt;|end|&gt;", True),
+    ]
+    chip_x, chip_w = 30, 116
+    box_x, box_w, box_h = 158, 372, 46
+    y0, rgap = 58, 66
+    for i, (tok, text, is_completion) in enumerate(rows):
+        y = y0 + i * rgap
+        # The special role token, as a mono pill.
+        body.append(
+            f'<rect x="{chip_x}" y="{y + 8}" width="{chip_w}" height="30" rx="6" '
+            f'fill="#faf9f5" stroke="{RULE_STRONG}"/>'
+        )
+        body.append(
+            f'<text x="{chip_x + chip_w / 2}" y="{y + 27}" font-size="11" '
+            f'font-family="{MONO}" text-anchor="middle" fill="{INK_SOFT}">{tok}</text>'
+        )
+        fill = ACCENT_SOFT if is_completion else "#ffffff"
+        stroke = ACCENT if is_completion else RULE_STRONG
+        tf = ACCENT if is_completion else INK_SOFT
+        body.append(
+            f'<rect x="{box_x}" y="{y}" width="{box_w}" height="{box_h}" rx="8" '
+            f'fill="{fill}" stroke="{stroke}"/>'
+        )
+        body.append(
+            f'<text x="{box_x + 16}" y="{y + box_h / 2 + 4}" font-size="11.5" '
+            f'fill="{tf}" font-weight="{600 if is_completion else 400}">{text}</text>'
+        )
+
+    # Brackets on the right: prompt is masked, completion carries the loss.
+    br_x = box_x + box_w + 14
+    prompt_top = y0
+    prompt_bot = y0 + rgap + box_h
+    comp_top = y0 + 2 * rgap
+    comp_bot = comp_top + box_h
+
+    def bracket(top: float, bot: float, color: str) -> str:
+        return (
+            f'<path d="M {br_x + 8} {top} L {br_x} {top} L {br_x} {bot} L {br_x + 8} {bot}" '
+            f'fill="none" stroke="{color}" stroke-width="1.4"/>'
+        )
+
+    body.append(bracket(prompt_top, prompt_bot, RULE_STRONG))
+    body.append(
+        f'<text x="{br_x + 18}" y="{(prompt_top + prompt_bot) / 2 - 4}" font-size="11" '
+        f'font-weight="700" fill="{MUTED}">prompt</text>'
+    )
+    body.append(
+        f'<text x="{br_x + 18}" y="{(prompt_top + prompt_bot) / 2 + 12}" font-size="10.5" '
+        f'fill="{MUTED}">masked, no loss</text>'
+    )
+    body.append(bracket(comp_top, comp_bot, ACCENT))
+    body.append(
+        f'<text x="{br_x + 18}" y="{(comp_top + comp_bot) / 2 - 3}" font-size="11" '
+        f'font-weight="700" fill="{ACCENT}">completion</text>'
+    )
+    body.append(
+        f'<text x="{br_x + 18}" y="{(comp_top + comp_bot) / 2 + 13}" font-size="10.5" '
+        f'fill="{ACCENT}">loss here</text>'
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">The template marks whose turn it is; the loss '
+        f"trains only the assistant tokens, including the end token that teaches it to stop.</text>"
+    )
+    return write_svg(
+        "chat-template-masking.svg",
+        svg_doc(width, height, "chat template with loss masked to the completion", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 10.3 — in SFT, curation beats volume.
+# ---------------------------------------------------------------------------
+
+
+def fig_sft_data_quality() -> Path:  # noqa: F405
+    """Plot: curated demonstrations plateau early; noisy data needs far more, for less."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.7))  # noqa: F405
+
+    counts = [10 ** (2 + i * 0.04) for i in range(101)]  # 1e2 .. 1e6.
+
+    def curated(n: float) -> float:
+        return 83.0 * n / (n + 260.0)
+
+    def noisy(n: float) -> float:
+        return 62.0 * n / (n + 9000.0)
+
+    ax.plot(counts, [curated(n) for n in counts], color=ACCENT, linewidth=2.2,
+            label="curated & diverse")
+    ax.plot(counts, [noisy(n) for n in counts], color=BRICK, linewidth=2.0,
+            linestyle=(0, (5, 2)), label="scraped & noisy")
+    ax.set_xscale("log")
+
+    # Anchor the LIMA-style point: about a thousand curated examples get most of the gain.
+    ax.scatter([1000], [curated(1000)], s=42, color=AMBER, zorder=5)
+    ax.annotate(
+        "~1k curated examples:\nmost of the gain already banked",
+        xy=(1000, curated(1000)),
+        xytext=(1500, 34),
+        fontsize=8,
+        color=AMBER,
+        arrowprops={"arrowstyle": "-", "color": AMBER, "linewidth": 0.8},
+    )
+
+    ax.set_xlabel("number of SFT demonstrations (log scale)")
+    ax.set_ylabel("assistant quality (illustrative)")
+    ax.set_title(
+        "In SFT, curation beats volume: quality data plateaus early", loc="left"
+    )
+    ax.set_ylim(0, 95)
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower right")
+    return save_plot(fig, "sft-data-quality.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 10.4 — SFT changes behavior, not knowledge.
+# ---------------------------------------------------------------------------
+
+
+def fig_sft_knowledge_boundary() -> Path:  # noqa: F405
+    """Diagram: demonstrations inside the base model's knowledge help; those outside
+    teach confident guessing."""
+    width, height = 680, 320
+    body: list[str] = [eyebrow(24, 30, "SFT CHANGES BEHAVIOR, NOT KNOWLEDGE")]
+
+    cx, cy, r = 224, 182, 116
+    body.append(
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{ACCENT_SOFT}" stroke="{ACCENT}" '
+        f'stroke-width="1.4"/>'
+    )
+    body.append(
+        f'<text x="{cx}" y="{cy - r + 26}" font-size="12" font-weight="700" '
+        f'text-anchor="middle" fill="{ACCENT}">what the base</text>'
+    )
+    body.append(
+        f'<text x="{cx}" y="{cy - r + 42}" font-size="12" font-weight="700" '
+        f'text-anchor="middle" fill="{ACCENT}">model knows</text>'
+    )
+
+    # Demonstrations inside the boundary: reinforce retrieval and formatting.
+    inside = [(180, 180), (250, 210), (208, 244)]
+    for x, y in inside:
+        body.append(f'<circle cx="{x}" cy="{y}" r="7" fill="{ACCENT}"/>')
+        body.append(
+            f'<path d="M {x - 3.2} {y} l 2.2 2.4 l 4.2 -4.8" fill="none" stroke="#ffffff" '
+            f'stroke-width="1.4"/>'
+        )
+
+    # Demonstrations outside the boundary: teach confident guessing.
+    outside = [(392, 132), (426, 196), (398, 258)]
+    for x, y in outside:
+        body.append(f'<circle cx="{x}" cy="{y}" r="7" fill="{BRICK}"/>')
+        body.append(
+            f'<path d="M {x - 3} {y - 3} l 6 6 M {x + 3} {y - 3} l -6 6" stroke="#ffffff" '
+            f'stroke-width="1.3"/>'
+        )
+
+    # Right-hand legend: each callout carries its own swatch so it is not read as a
+    # pointer at the nearest dot.
+    tx = 486
+    body.append(f'<circle cx="{tx + 6}" cy="{116}" r="7" fill="{ACCENT}"/>')
+    body.append(
+        f'<path d="M {tx + 2.8} {116} l 2.2 2.4 l 4.2 -4.8" fill="none" stroke="#ffffff" '
+        f'stroke-width="1.4"/>'
+    )
+    body.append(
+        f'<text x="{tx + 20}" y="120" font-size="11" font-weight="700" '
+        f'fill="{ACCENT}">inside the boundary</text>'
+    )
+    for j, line in enumerate(
+        ["Demonstrations reinforce", "recall and formatting of", "facts already learned."]
+    ):
+        body.append(
+            f'<text x="{tx + 20}" y="{138 + j * 15}" font-size="10.5" fill="{INK_SOFT}">{line}</text>'
+        )
+    body.append(f'<circle cx="{tx + 6}" cy="{204}" r="7" fill="{BRICK}"/>')
+    body.append(
+        f'<path d="M {tx + 3} {201} l 6 6 M {tx + 9} {201} l -6 6" stroke="#ffffff" '
+        f'stroke-width="1.3"/>'
+    )
+    body.append(
+        f'<text x="{tx + 20}" y="208" font-size="11" font-weight="700" '
+        f'fill="{BRICK}">outside the boundary</text>'
+    )
+    for j, line in enumerate(
+        ["SFT cannot add the fact; it", "teaches the model to guess", "just as confidently."]
+    ):
+        body.append(
+            f'<text x="{tx + 20}" y="{226 + j * 15}" font-size="10.5" fill="{INK_SOFT}">{line}</text>'
+        )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Fine-tuning on facts beyond the model&#8217;s reach '
+        f"trains away its hesitation, and hallucination is the seed you plant.</text>"
+    )
+    return write_svg(
+        "sft-knowledge-boundary.svg",
+        svg_doc(width, height, "SFT changes behavior not knowledge", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: rlhf.
+# ---------------------------------------------------------------------------
+def fig_demonstration_vs_preference() -> Path:
+    """Diagram: SFT copies one gold answer; preference learning ranks samples."""
+    width, height = 660, 300
+    body: list[str] = []
+
+    pw = width / 2 - 36
+    left_x = 24
+    right_x = width / 2 + 12
+    prompt = "“What is a good name for a coffee shop?”"
+
+    # Shared prompt line at the top of each panel.
+    panels = [
+        (left_x, "SUPERVISED FINE-TUNING", "imitate one written answer", VIOLET),
+        (right_x, "PREFERENCE LEARNING", "rank answers the model wrote", ACCENT),
+    ]
+    for px, tag, sub, color in panels:
+        body.append(eyebrow(px, 34, tag, color))
+        body.append(
+            f'<text x="{px}" y="52" font-size="10.5" font-style="italic" '
+            f'fill="{MUTED}">{sub}</text>'
+        )
+        body += token_box(
+            px, 66, pw, 30, prompt, fill=ACCENT_SOFT, stroke=ACCENT,
+            text_fill=ACCENT, font_size=11,
+        )
+
+    # Left panel: one gold answer, imitated.
+    body.append(
+        f'<path d="M {left_x + pw / 2} 98 L {left_x + pw / 2} 128" '
+        f'stroke="{RULE_STRONG}" stroke-width="1.5" marker-end="url(#dp1)"/>'
+    )
+    gold_y = 132
+    body.append(
+        f'<rect x="{left_x}" y="{gold_y}" width="{pw}" height="46" rx="8" '
+        f'fill="#ffffff" stroke="{VIOLET}"/>'
+    )
+    body.append(
+        f'<rect x="{left_x}" y="{gold_y}" width="4" height="46" rx="2" fill="{VIOLET}"/>'
+    )
+    body.append(
+        f'<text x="{left_x + 18}" y="{gold_y + 20}" font-size="11.5" fill="{INK}">'
+        f'“The Daily Grind”</text>'
+    )
+    body.append(
+        f'<text x="{left_x + 18}" y="{gold_y + 37}" font-size="10" fill="{MUTED}">'
+        f'the one answer a human wrote</text>'
+    )
+    body.append(
+        f'<text x="{left_x + pw / 2}" y="{gold_y + 78}" font-size="10.5" '
+        f'text-anchor="middle" fill="{VIOLET}" font-weight="600">'
+        f'copy it &#183; ceiling = the annotator</text>'
+    )
+
+    # Right panel: three sampled answers, ranked.
+    samples = [
+        ("“The Grind House”", "1", AMBER),
+        ("“Bean There”", "2", MUTED),
+        ("“Coffee Place #4”", "3", RULE_STRONG),
+    ]
+    body.append(
+        f'<path d="M {right_x + pw / 2} 98 L {right_x + pw / 2} 116" '
+        f'stroke="{RULE_STRONG}" stroke-width="1.5" marker-end="url(#dp1)"/>'
+    )
+    sy0, srh = 120, 42
+    for i, (text, rank, color) in enumerate(samples):
+        y = sy0 + i * srh
+        body.append(
+            f'<rect x="{right_x + 30}" y="{y}" width="{pw - 30}" height="{srh - 8}" '
+            f'rx="7" fill="#ffffff" stroke="{RULE_STRONG}"/>'
+        )
+        body.append(
+            f'<text x="{right_x + 44}" y="{y + 22}" font-size="11" fill="{INK_SOFT}">'
+            f'{text}</text>'
+        )
+        # Rank badge.
+        body.append(
+            f'<circle cx="{right_x + 12}" cy="{y + 17}" r="12" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{right_x + 12}" y="{y + 21}" font-size="12" font-weight="700" '
+            f'text-anchor="middle" fill="#ffffff">{rank}</text>'
+        )
+    body.append(
+        f'<text x="{right_x + pw / 2}" y="{sy0 + 3 * srh + 6}" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}" font-weight="600">'
+        f'judge them &#183; no ceiling on quality</text>'
+    )
+
+    body.append(arrow_marker(RULE_STRONG, "dp1"))
+    return write_svg(
+        "demonstration-vs-preference.svg",
+        svg_doc(width, height, "a demonstration to imitate versus preferences to rank", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 11.2 — a scalar reward learned from a pairwise choice.
+# ---------------------------------------------------------------------------
+
+
+def fig_reward_model() -> Path:
+    """Diagram: chosen and rejected responses share a reward model; loss on the gap."""
+    width, height = 660, 300
+    body: list[str] = [eyebrow(24, 30, "LEARNING A REWARD FROM A CHOICE")]
+
+    # The prompt on the left, feeding both responses.
+    body += token_box(
+        24, 132, 66, 34, "prompt", fill=ACCENT_SOFT, stroke=ACCENT, text_fill=ACCENT
+    )
+
+    resp_x = 150
+    rm_x = 322
+    # Chosen (top) and rejected (bottom) responses.
+    rows = [
+        (72, "chosen  y", "preferred by a human", ACCENT, "r(x, y_w)"),
+        (196, "rejected  y", "the other option", BRICK, "r(x, y_l)"),
+    ]
+    reward_x = 452
+    for y, label, sub, color, _ in rows:
+        body.append(
+            f'<rect x="{resp_x}" y="{y}" width="132" height="46" rx="8" '
+            f'fill="#ffffff" stroke="{color}"/>'
+        )
+        body.append(
+            f'<rect x="{resp_x}" y="{y}" width="4" height="46" rx="2" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{resp_x + 16}" y="{y + 22}" font-size="12" font-weight="600" '
+            f'fill="{INK}">{label}</text>'
+        )
+        body.append(
+            f'<text x="{resp_x + 16}" y="{y + 38}" font-size="9.5" fill="{MUTED}">'
+            f'{sub}</text>'
+        )
+        # Prompt -> response.
+        body.append(
+            f'<path d="M 90 149 C 120 149, 124 {y + 23}, {resp_x - 4} {y + 23}" '
+            f'fill="none" stroke="{RULE_STRONG}" stroke-width="1.3"/>'
+        )
+        # Response -> reward model.
+        body.append(
+            f'<path d="M {resp_x + 132} {y + 23} C {rm_x - 40} {y + 23}, '
+            f'{rm_x - 30} 149, {rm_x - 4} 149" fill="none" stroke="{RULE_STRONG}" '
+            f'stroke-width="1.3" marker-end="url(#rm1)"/>'
+        )
+
+    # The shared reward model.
+    body.append(
+        f'<rect x="{rm_x}" y="118" width="96" height="62" rx="10" fill="{ACCENT}"/>'
+    )
+    body.append(
+        f'<text x="{rm_x + 48}" y="144" font-size="13" font-weight="700" '
+        f'text-anchor="middle" fill="#ffffff">reward</text>'
+    )
+    body.append(
+        f'<text x="{rm_x + 48}" y="161" font-size="13" font-weight="700" '
+        f'text-anchor="middle" fill="#ffffff">model</text>'
+    )
+    body.append(
+        f'<text x="{rm_x + 48}" y="196" font-size="9.5" text-anchor="middle" '
+        f'fill="{MUTED}">SFT body + scalar head</text>'
+    )
+
+    # The two scalar rewards.
+    for y, _, _, color, expr in rows:
+        ry = y + 23
+        body.append(
+            f'<path d="M {rm_x + 96} {149 if y < 150 else 149} C {rm_x + 120} 149, '
+            f'{reward_x - 30} {ry}, {reward_x - 4} {ry}" fill="none" '
+            f'stroke="{color}" stroke-width="1.4" marker-end="url(#rm1)"/>'
+        )
+        body.append(
+            f'<text x="{reward_x + 4}" y="{ry + 4}" font-size="12.5" '
+            f'font-family="{MONO}" fill="{color}">{expr}</text>'
+        )
+
+    # The loss node at the right, seeing only the difference.
+    body.append(
+        f'<rect x="{reward_x - 6}" y="128" width="176" height="42" rx="8" '
+        f'fill="#faf9f5" stroke="{RULE}" opacity="0"/>'
+    )
+    body.append(
+        f'<text x="{reward_x + 60}" y="256" font-size="11.5" text-anchor="middle" '
+        f'font-family="{MONO}" fill="{INK}">loss = &#8722;log &#963;(r_w &#8722; r_l)</text>'
+    )
+    body.append(
+        f'<text x="{reward_x + 60}" y="274" font-size="10" text-anchor="middle" '
+        f'fill="{MUTED}">push the chosen reward above the rejected</text>'
+    )
+    # Brackets from the two rewards down to the loss.
+    body.append(
+        f'<path d="M {reward_x + 60} 175 L {reward_x + 60} 240" fill="none" '
+        f'stroke="{RULE_STRONG}" stroke-width="1.2" stroke-dasharray="4 3" '
+        f'marker-end="url(#rm1)"/>'
+    )
+
+    body.append(arrow_marker(RULE_STRONG, "rm1"))
+    return write_svg(
+        "reward-model.svg",
+        svg_doc(width, height, "a reward model scoring a chosen and a rejected response", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 11.3 — the PPO loop with a KL leash to a frozen reference.
+# ---------------------------------------------------------------------------
+
+
+def fig_rlhf_loop() -> Path:
+    """Diagram: policy samples, reward model scores, KL leash, PPO update, repeat."""
+    width, height = 680, 320
+    body: list[str] = [eyebrow(24, 30, "THE RLHF LOOP (PPO)")]
+
+    # Top row of the cycle, left to right.
+    row_y = 74
+    bh = 52
+
+    def node(x, w, title, sub, fill, tf, stroke):
+        out = [
+            f'<rect x="{x}" y="{row_y}" width="{w}" height="{bh}" rx="10" '
+            f'fill="{fill}" stroke="{stroke}"/>',
+            f'<text x="{x + w / 2}" y="{row_y + 24}" font-size="12.5" '
+            f'font-weight="700" text-anchor="middle" fill="{tf}">{title}</text>',
+        ]
+        if sub:
+            out.append(
+                f'<text x="{x + w / 2}" y="{row_y + 41}" font-size="9.5" '
+                f'text-anchor="middle" fill="{MUTED if tf == INK else ACCENT_SOFT}">'
+                f'{sub}</text>'
+            )
+        return out
+
+    body += node(24, 70, "prompt", "x", ACCENT_SOFT, ACCENT, ACCENT)
+    body += node(140, 118, "policy πθ", "being trained", ACCENT, "#ffffff", "none")
+    body += node(310, 118, "response y", "sampled on-policy", "#ffffff", INK, RULE_STRONG)
+    body += node(480, 176, "reward model", "score r(x, y)", "#ffffff", INK, RULE_STRONG)
+
+    # Arrows across the top.
+    def harrow(x1, x2, color=RULE_STRONG):
+        return (
+            f'<path d="M {x1} {row_y + bh / 2} L {x2} {row_y + bh / 2}" '
+            f'stroke="{color}" stroke-width="1.6" marker-end="url(#rl1)"/>'
+        )
+
+    body.append(harrow(94, 136))
+    body.append(harrow(258, 306))
+    body.append(harrow(428, 476))
+
+    # The frozen reference and the KL penalty, below the policy/response.
+    ref_y = 176
+    body.append(
+        f'<rect x="140" y="{ref_y}" width="118" height="46" rx="10" '
+        f'fill="#f0efe9" stroke="{RULE_STRONG}"/>'
+    )
+    body.append(
+        f'<text x="199" y="{ref_y + 20}" font-size="12" font-weight="700" '
+        f'text-anchor="middle" fill="{INK_SOFT}">reference π_ref</text>'
+    )
+    body.append(
+        f'<text x="199" y="{ref_y + 36}" font-size="9.5" text-anchor="middle" '
+        f'fill="{MUTED}">frozen SFT copy</text>'
+    )
+    # Policy -> reference comparison (KL).
+    body.append(
+        f'<path d="M 199 {row_y + bh} L 199 {ref_y}" stroke="{BRICK}" '
+        f'stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#rl1b)"/>'
+    )
+    body.append(
+        f'<text x="209" y="{(row_y + bh + ref_y) / 2 + 4}" font-size="10" '
+        f'fill="{BRICK}">KL leash</text>'
+    )
+
+    # The combined objective node.
+    obj_y = 256
+    body.append(
+        f'<rect x="300" y="{obj_y}" width="240" height="46" rx="10" '
+        f'fill="#faf9f5" stroke="{RULE}"/>'
+    )
+    body.append(
+        f'<text x="420" y="{obj_y + 20}" font-size="11.5" text-anchor="middle" '
+        f'font-family="{MONO}" fill="{INK}">r(x, y) &#8722; β·KL(πθ &#8214; π_ref)</text>'
+    )
+    body.append(
+        f'<text x="420" y="{obj_y + 37}" font-size="9.5" text-anchor="middle" '
+        f'fill="{MUTED}">advantage &#8594; clipped PPO update</text>'
+    )
+    # Reward model -> objective.
+    body.append(
+        f'<path d="M 539 {row_y + bh} C 539 220, 540 {obj_y - 8}, 500 {obj_y - 2}" '
+        f'fill="none" stroke="{RULE_STRONG}" stroke-width="1.4" marker-end="url(#rl1)"/>'
+    )
+    # Reference -> objective (the KL term).
+    body.append(
+        f'<path d="M 258 {ref_y + 23} C 290 {ref_y + 23}, 300 {obj_y + 10}, '
+        f'{300 - 2} {obj_y + 14}" fill="none" stroke="{BRICK}" stroke-width="1.2" '
+        f'stroke-dasharray="5 3" marker-end="url(#rl1b)"/>'
+    )
+    # Objective -> policy (the update loops back).
+    body.append(
+        f'<path d="M 300 {obj_y + 23} C 120 {obj_y + 23}, 120 {row_y + bh + 20}, '
+        f'199 {row_y + bh + 4}" fill="none" stroke="{ACCENT}" stroke-width="1.8" '
+        f'marker-end="url(#rl1a)"/>'
+    )
+    body.append(
+        f'<text x="120" y="{obj_y - 6}" font-size="10" text-anchor="middle" '
+        f'fill="{ACCENT}" font-weight="600">update, then repeat</text>'
+    )
+
+    body.append(arrow_marker(RULE_STRONG, "rl1"))
+    body.append(arrow_marker(ACCENT, "rl1a"))
+    body.append(arrow_marker(BRICK, "rl1b"))
+    return write_svg(
+        "rlhf-loop.svg",
+        svg_doc(width, height, "the PPO reinforcement-learning loop for RLHF", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 11.4 — proxy reward keeps rising while true reward turns over.
+# ---------------------------------------------------------------------------
+
+
+def fig_reward_overoptimization() -> Path:
+    """Plot: the proxy reward climbs monotonically; the true reward peaks and falls."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.7))
+
+    # KL distance from the reference model (illustrative units).
+    d = [0.05 + 0.05 * i for i in range(420)]
+    proxy = [1.5 * math.sqrt(x) + 0.18 * x for x in d]
+    gold = [2.4 * math.sqrt(x) - 0.5 * x for x in d]
+
+    ax.plot(d, proxy, color=ACCENT, linewidth=2.2, label="proxy reward (what you optimize)")
+    ax.plot(d, gold, color=BRICK, linewidth=2.2, label="true reward (held-out humans)")
+
+    # The peak of the true reward: the model you actually want.
+    peak_x = (2.4 / (2 * 0.5)) ** 2  # Maximizer of 2.4*sqrt(x) - 0.5*x.
+    peak_y = 2.4 * math.sqrt(peak_x) - 0.5 * peak_x
+    ax.axvline(peak_x, color=INK_SOFT, linewidth=0.9, linestyle=(0, (4, 3)))
+    ax.scatter([peak_x], [peak_y], s=42, color=BRICK, zorder=5)
+    ax.annotate(
+        "true reward peaks:\nship this model",
+        xy=(peak_x, peak_y),
+        xytext=(peak_x + 2.0, peak_y - 1.4),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    # Shade the over-optimized region past the peak.
+    ax.axvspan(peak_x, d[-1], color=BRICK, alpha=0.06)
+    ax.text(
+        d[-1] - 0.3,
+        0.5,
+        "over-optimized:\nreward hacked",
+        fontsize=7.5,
+        color=BRICK,
+        ha="right",
+    )
+
+    ax.set_xlabel("distance from the reference model (KL, illustrative)")
+    ax.set_ylabel("reward")
+    ax.set_title(
+        "Optimizing the proxy too hard makes the real thing worse", loc="left"
+    )
+    ax.set_xlim(0, d[-1])
+    ax.set_ylim(0, 8)
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper left")
+    return save_plot(fig, "reward-overoptimization.svg")
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: preference-optimization.
+# ---------------------------------------------------------------------------
+def fig_dpo_vs_rlhf() -> Path:
+    """Diagram: the RLHF pipeline stacked above the shorter DPO path."""
+    width, height = 720, 300
+
+    def stage(x, y, w, h, title, sub, fill, stroke, tf):
+        cells = [
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="8" '
+            f'fill="{fill}" stroke="{stroke}"/>',
+            f'<text x="{x + w / 2:.1f}" y="{y + 22:.1f}" font-size="12.5" '
+            f'font-weight="700" text-anchor="middle" fill="{tf}">{title}</text>',
+        ]
+        for j, line in enumerate(sub.split("\n")):
+            cells.append(
+                f'<text x="{x + w / 2:.1f}" y="{y + 39 + j * 13:.1f}" font-size="10" '
+                f'text-anchor="middle" fill="{MUTED if tf == INK else ACCENT_SOFT}">'
+                f"{line}</text>"
+            )
+        return cells
+
+    body: list[str] = []
+
+    prefs_w, box_h = 96, 60
+
+    # Shared starting point: the preference dataset.
+    prefs_y = (height - box_h) / 2 - 6
+    body += stage(
+        22,
+        prefs_y,
+        prefs_w,
+        box_h,
+        "preferences",
+        "chosen vs\nrejected pairs",
+        ACCENT_SOFT,
+        ACCENT,
+        ACCENT,
+    )
+
+    # Top track: RLHF (Chapter 11).
+    top_y = 44
+    body.append(eyebrow(150, top_y - 12, "RLHF  (CHAPTER 11):  TWO EXTRA STAGES", fill=BRICK))
+    rm_x, ppo_x, pol_x = 150, 330, 520
+    body += stage(rm_x, top_y, 150, box_h, "reward model", "fit Bradley-Terry\nscores", "#ffffff", RULE_STRONG, INK)
+    body += stage(ppo_x, top_y, 150, box_h, "PPO loop", "sample, score,\nupdate with KL leash", "#ffffff", RULE_STRONG, INK)
+    body += stage(pol_x, top_y, 150, box_h, "aligned policy", "the tuned model", ACCENT, "none", "#ffffff")
+
+    # Bottom track: DPO.
+    bot_y = 196
+    body.append(eyebrow(150, bot_y - 12, "DPO:  ONE CLASSIFICATION-STYLE LOSS", fill=ACCENT))
+    body += stage(rm_x, bot_y, 330, box_h, "direct preference loss", "raise log-prob of chosen, lower it for rejected,\nanchored to a frozen reference model", ACCENT_SOFT, ACCENT, ACCENT)
+    body += stage(pol_x, bot_y, 150, box_h, "aligned policy", "the tuned model", ACCENT, "none", "#ffffff")
+
+    # Arrows from preferences into each track.
+    body.append(
+        f'<path d="M {22 + prefs_w} {prefs_y + box_h / 2} C 132 {prefs_y + box_h / 2}, '
+        f'132 {top_y + box_h / 2}, {rm_x - 6} {top_y + box_h / 2}" fill="none" '
+        f'stroke="{BRICK}" stroke-width="1.5" marker-end="url(#p1)"/>'
+    )
+    body.append(
+        f'<path d="M {22 + prefs_w} {prefs_y + box_h / 2} C 132 {prefs_y + box_h / 2}, '
+        f'132 {bot_y + box_h / 2}, {rm_x - 6} {bot_y + box_h / 2}" fill="none" '
+        f'stroke="{ACCENT}" stroke-width="1.5" marker-end="url(#p2)"/>'
+    )
+
+    # Within-track arrows.
+    def harrow(x1, x2, y, color, mk):
+        body.append(
+            f'<path d="M {x1} {y} L {x2} {y}" stroke="{color}" stroke-width="1.5" '
+            f'marker-end="url(#{mk})"/>'
+        )
+
+    harrow(rm_x + 150 + 4, ppo_x - 6, top_y + box_h / 2, BRICK, "p1")
+    harrow(ppo_x + 150 + 4, pol_x - 6, top_y + box_h / 2, BRICK, "p1")
+    harrow(rm_x + 330 + 4, pol_x - 6, bot_y + box_h / 2, ACCENT, "p2")
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Same data, same goal. DPO shows the reward '
+        f"model and the RL loop were an indirection you can skip.</text>"
+    )
+
+    body.append(arrow_marker(BRICK, "p1"))
+    body.append(arrow_marker(ACCENT, "p2"))
+    return write_svg(
+        "dpo-vs-rlhf.svg", svg_doc(width, height, "RLHF pipeline versus the DPO path", body)
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 12.2 — the DPO family as a small matrix of what each method drops.
+# ---------------------------------------------------------------------------
+
+
+def fig_preference_methods() -> Path:
+    """Diagram: a table of DPO variants and the ingredient each one changes."""
+    width, height = 720, 300
+
+    cols = ["", "reference\nmodel?", "paired\ndata?", "separate\nSFT stage?", "what it changes"]
+    # (method, ref?, paired?, sft?, note)
+    rows = [
+        ("DPO", "yes", "yes", "yes", "the baseline: implicit reward = beta log(pi/ref)"),
+        ("IPO", "yes", "yes", "yes", "bounds the objective so it stops overfitting"),
+        ("KTO", "yes", "no", "yes", "learns from lone good/bad labels, not pairs"),
+        ("ORPO", "no", "yes", "no", "folds SFT and preference into one stage"),
+        ("SimPO", "no", "yes", "yes", "reference-free, length-normalized reward"),
+    ]
+
+    x0, y0 = 24, 74
+    col_x = [x0, 170, 258, 346, 452]
+    col_w = [146, 84, 84, 100, 244]
+    row_h = 38
+
+    body: list[str] = [eyebrow(x0, 34, "ONE FAMILY, FOUR THINGS TO DROP OR CHANGE")]
+
+    # Header row.
+    for c, label in enumerate(cols):
+        for j, line in enumerate(label.split("\n")):
+            body.append(
+                f'<text x="{col_x[c] + (col_w[c] / 2 if c > 0 else 4):.1f}" '
+                f'y="{y0 - 22 + j * 12:.1f}" font-size="10.5" font-weight="700" '
+                f'fill="{INK_SOFT}" text-anchor="{"middle" if c > 0 else "start"}">'
+                f"{line}</text>"
+            )
+
+    def mark(x, y, val):
+        if val == "yes":
+            return (
+                f'<text x="{x:.1f}" y="{y + 4:.1f}" font-size="14" text-anchor="middle" '
+                f'fill="{MUTED}">&#10003;</text>'
+            )
+        return (
+            f'<text x="{x:.1f}" y="{y + 4:.1f}" font-size="14" text-anchor="middle" '
+            f'fill="{ACCENT}" font-weight="700">&#8212;</text>'
+        )
+
+    for r, (name, ref, paired, sft, note) in enumerate(rows):
+        y = y0 + r * row_h
+        cy = y + row_h / 2
+        if r % 2 == 0:
+            body.append(
+                f'<rect x="{x0 - 8}" y="{y}" width="{width - 2 * x0 + 16}" '
+                f'height="{row_h}" fill="{RULE}" opacity="0.35"/>'
+            )
+        highlight = name == "DPO"
+        body.append(
+            f'<text x="{col_x[0] + 4}" y="{cy + 4:.1f}" font-size="12.5" '
+            f'font-weight="700" fill="{ACCENT if highlight else INK}">{name}</text>'
+        )
+        body.append(mark(col_x[1] + col_w[1] / 2, cy, ref))
+        body.append(mark(col_x[2] + col_w[2] / 2, cy, paired))
+        body.append(mark(col_x[3] + col_w[3] / 2, cy, sft))
+        body.append(
+            f'<text x="{col_x[4]:.1f}" y="{cy + 4:.1f}" font-size="10.5" '
+            f'fill="{INK_SOFT}">{note}</text>'
+        )
+
+    body.append(
+        f'<text x="{x0}" y="{height - 12}" font-size="10.5" fill="{MUTED}" '
+        f'font-style="italic">A dash means the method removes that ingredient. Each '
+        f"variant is DPO minus one assumption, not a different paradigm.</text>"
+    )
+
+    return write_svg(
+        "preference-methods.svg",
+        svg_doc(width, height, "a comparison table of DPO-family methods", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 12.3 — off-policy DPO can drift off the data it was trained on.
+# ---------------------------------------------------------------------------
+
+
+def fig_on_off_policy() -> Path:
+    """Diagram: a fixed preference dataset versus fresh on-policy samples."""
+    width, height = 720, 300
+    panel_w = 320
+    pad = 40
+
+    def panel(x, tag, sub, color, drift):
+        cells = [
+            f'<rect x="{x}" y="56" width="{panel_w}" height="188" rx="10" '
+            f'fill="#ffffff" stroke="{RULE_STRONG}"/>',
+            f'<text x="{x + 16}" y="80" font-size="12" font-weight="700" '
+            f'fill="{color}">{tag}</text>',
+            f'<text x="{x + 16}" y="97" font-size="10.5" fill="{MUTED}">{sub}</text>',
+        ]
+        # The region the preference data actually covers.
+        cx, cy = x + panel_w / 2, 175
+        cells.append(
+            f'<ellipse cx="{cx}" cy="{cy}" rx="96" ry="52" fill="{ACCENT_SOFT}" '
+            f'stroke="{ACCENT}" stroke-dasharray="4 3"/>'
+        )
+        cells.append(
+            f'<text x="{cx}" y="{cy + 68}" font-size="9.5" text-anchor="middle" '
+            f'fill="{ACCENT}">preference data coverage</text>'
+        )
+        import random
+
+        rng = random.Random(3)
+        for _ in range(26):
+            dx = rng.gauss(0, 34)
+            dy = rng.gauss(0, 20)
+            cells.append(
+                f'<circle cx="{cx + dx:.1f}" cy="{cy + dy:.1f}" r="2.4" '
+                f'fill="{ACCENT}" opacity="0.55"/>'
+            )
+        # The current policy: inside the region, or drifting out of it.
+        if drift:
+            px, py = cx + 118, cy - 44
+            cells.append(
+                f'<path d="M {cx + 40} {cy - 12} C {cx + 90} {cy - 40}, '
+                f'{px - 24} {py + 8}, {px - 6} {py}" fill="none" stroke="{BRICK}" '
+                f'stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#o1)"/>'
+            )
+            cells.append(
+                f'<circle cx="{px}" cy="{py}" r="6" fill="{BRICK}"/>'
+            )
+            cells.append(
+                f'<text x="{px}" y="{py - 12}" font-size="9.5" text-anchor="middle" '
+                f'fill="{BRICK}">policy drifts here</text>'
+            )
+            cells.append(
+                f'<text x="{px}" y="{py + 22}" font-size="9" text-anchor="middle" '
+                f'fill="{BRICK}">no labels; loss says nothing</text>'
+            )
+        else:
+            cells.append(f'<circle cx="{cx}" cy="{cy}" r="6" fill="{ACCENT}"/>')
+            cells.append(
+                f'<text x="{cx}" y="{cy - 62}" font-size="9.5" text-anchor="middle" '
+                f'fill="{ACCENT}">fresh samples re-cover the policy each step</text>'
+            )
+        return cells
+
+    body: list[str] = [eyebrow(pad, 34, "WHY ON-POLICY DATA CAN WIN")]
+    body += panel(
+        pad,
+        "DPO  (off-policy)",
+        "one fixed dataset, collected once",
+        BRICK,
+        drift=True,
+    )
+    body += panel(
+        pad + panel_w + 40,
+        "PPO  (on-policy)",
+        "new samples drawn from the live policy",
+        ACCENT,
+        drift=False,
+    )
+    body.append(arrow_marker(BRICK, "o1"))
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">As DPO shifts the policy, it can wander off '
+        f"the pairs it learned from; online RLHF keeps sampling where the policy now lives.</text>"
+    )
+    return write_svg(
+        "on-off-policy.svg",
+        svg_doc(width, height, "off-policy DPO drift versus on-policy sampling", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 12.4 — Constitutional AI replaces the human labeler with the model.
+# ---------------------------------------------------------------------------
+
+
+def fig_constitutional_ai() -> Path:
+    """Diagram: the self-critique/revise loop and AI-labeled preferences."""
+    width, height = 720, 320
+
+    body: list[str] = [eyebrow(24, 32, "REPLACING THE HUMAN LABELER WITH A PRINCIPLE")]
+
+    def box(x, y, w, h, title, sub, fill, stroke, tf):
+        cells = [
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="{fill}" '
+            f'stroke="{stroke}"/>',
+            f'<text x="{x + w / 2}" y="{y + 21}" font-size="11.5" font-weight="700" '
+            f'text-anchor="middle" fill="{tf}">{title}</text>',
+        ]
+        for j, line in enumerate(sub.split("\n")):
+            cells.append(
+                f'<text x="{x + w / 2}" y="{y + 37 + j * 12}" font-size="9.5" '
+                f'text-anchor="middle" fill="{MUTED if tf == INK else ACCENT_SOFT}">'
+                f"{line}</text>"
+            )
+        return cells
+
+    bw, bh = 128, 58
+
+    # Phase 1: supervised self-revision.
+    p1_y = 74
+    body.append(
+        f'<text x="24" y="{p1_y - 8}" font-size="10.5" font-weight="700" '
+        f'fill="{VIOLET}">Phase 1 &#183; supervised: critique and revise</text>'
+    )
+    xs = [24, 196, 368, 540]
+    body += box(xs[0], p1_y, bw, bh, "response", "a first, flawed\nanswer", "#ffffff", RULE_STRONG, INK)
+    body += box(xs[1], p1_y, bw, bh, "self-critique", "\"which principle\ndoes this break?\"", ACCENT_SOFT, ACCENT, ACCENT)
+    body += box(xs[2], p1_y, bw, bh, "revision", "rewrite to obey\nthe constitution", ACCENT_SOFT, ACCENT, ACCENT)
+    body += box(xs[3], p1_y, bw, bh, "SFT target", "train on the\nrevised answer", VIOLET, "none", "#ffffff")
+    for i in range(3):
+        body.append(
+            f'<path d="M {xs[i] + bw + 4} {p1_y + bh / 2} L {xs[i + 1] - 6} '
+            f'{p1_y + bh / 2}" stroke="{RULE_STRONG}" stroke-width="1.4" '
+            f'marker-end="url(#c1)"/>'
+        )
+
+    # Phase 2: RLAIF preference labeling.
+    p2_y = 204
+    body.append(
+        f'<text x="24" y="{p2_y - 8}" font-size="10.5" font-weight="700" '
+        f'fill="{AMBER}">Phase 2 &#183; preferences: the model is the judge (RLAIF)</text>'
+    )
+    body += box(xs[0], p2_y, bw, bh, "two responses", "sampled from\nthe model", "#ffffff", RULE_STRONG, INK)
+    body += box(xs[1], p2_y, bw, bh, "AI judge", "picks the better\nper the constitution", "#ffffff", AMBER, AMBER)
+    body += box(xs[2], p2_y, bw, bh, "preference pair", "chosen vs\nrejected", ACCENT_SOFT, ACCENT, ACCENT)
+    body += box(xs[3], p2_y, bw, bh, "DPO or RLHF", "the loss from\nthis chapter", AMBER, "none", "#ffffff")
+    for i in range(3):
+        body.append(
+            f'<path d="M {xs[i] + bw + 4} {p2_y + bh / 2} L {xs[i + 1] - 6} '
+            f'{p2_y + bh / 2}" stroke="{RULE_STRONG}" stroke-width="1.4" '
+            f'marker-end="url(#c1)"/>'
+        )
+
+    body.append(arrow_marker(RULE_STRONG, "c1"))
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">A written principle stands in for the human '
+        f"annotator, so the preference signal scales as cheaply as inference.</text>"
+    )
+    return write_svg(
+        "constitutional-ai.svg",
+        svg_doc(width, height, "the Constitutional AI self-critique and RLAIF loop", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: peft.
+# ---------------------------------------------------------------------------
+def fig_peft_memory() -> Path:
+    """Plot: memory to fine-tune a 7B model, full FT versus LoRA."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.0))
+
+    # A 7B model at mixed-precision AdamW: 16 bytes per parameter of state.
+    full = [
+        ("weights (bf16)", 14, ACCENT),
+        ("gradients (bf16)", 14, VIOLET),
+        ("optimizer state (fp32)", 84, AMBER),
+    ]
+    # LoRA freezes the base (no gradient or optimizer tax) and trains a sliver.
+    lora = [
+        ("frozen base (bf16)", 14, ACCENT),
+        ("adapter + optimizer", 1, AMBER),
+    ]
+
+    def draw(y, segments):
+        left = 0.0
+        for name, size, color in segments:
+            ax.barh(y, size, left=left, height=0.5, color=color)
+            if size >= 12:
+                ax.text(
+                    left + size / 2,
+                    y,
+                    f"{name}\n{size} GB",
+                    ha="center",
+                    va="center",
+                    fontsize=7.5,
+                    color="#ffffff",
+                )
+            left += size
+        return left
+
+    full_total = draw(1, full)
+    lora_total = draw(0, lora)
+
+    ax.text(
+        full_total + 2,
+        1,
+        f"~{full_total:.0f} GB",
+        ha="left",
+        va="center",
+        fontsize=9,
+        color=INK,
+        fontweight="bold",
+    )
+    ax.text(
+        lora_total + 2,
+        0,
+        f"~{lora_total:.0f} GB, and one shared base for every task",
+        ha="left",
+        va="center",
+        fontsize=8,
+        color=INK_SOFT,
+    )
+    # Label the LoRA adapter sliver, which is too thin to hold text.
+    ax.annotate(
+        "trainable state\n(millions of params)",
+        xy=(14.5, 0),
+        xytext=(30, -0.62),
+        fontsize=7.5,
+        color=AMBER,
+        arrowprops={"arrowstyle": "-", "color": AMBER, "linewidth": 0.8},
+    )
+
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["LoRA (r=16)", "Full fine-tuning"])
+    ax.set_xlim(0, 128)
+    ax.set_ylim(-1.0, 1.6)
+    ax.set_xlabel("GPU memory to fine-tune a 7B model (GB)")
+    ax.set_title(
+        "Freezing the base deletes the optimizer tax on billions of weights",
+        loc="left",
+    )
+    ax.spines["left"].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    return save_plot(fig, "peft-memory.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 13.2 — LoRA routes the whole weight update through a rank-r bottleneck.
+# ---------------------------------------------------------------------------
+
+
+def fig_lora_update() -> Path:
+    """Diagram: a frozen weight matrix plus a low-rank trainable update B*A."""
+    width, height = 660, 300
+    body: list[str] = [eyebrow(24, 30, "THE LOW-RANK UPDATE")]
+
+    top = 78
+    sq = 118  # Side of the full d x k matrices.
+    r_thin = 24  # The rank-r dimension, drawn deliberately thin.
+
+    def matrix(x, y, w, h, fill, stroke, label, dims, dim_color):
+        cells = [
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="6" '
+            f'fill="{fill}" stroke="{stroke}"/>',
+            f'<text x="{x + w / 2:.1f}" y="{y + h / 2 + 6:.1f}" font-size="17" '
+            f'font-weight="700" text-anchor="middle" fill="{dim_color}">{label}</text>',
+            f'<text x="{x + w / 2:.1f}" y="{y + h + 16:.1f}" font-size="10.5" '
+            f'text-anchor="middle" fill="{MUTED}">{dims}</text>',
+        ]
+        return cells
+
+    # Frozen base weight W0.
+    x0 = 40
+    body += matrix(
+        x0, top, sq, sq, "#eeede7", RULE_STRONG, "W&#8320;", "d &#215; k, frozen", INK
+    )
+    body.append(
+        f'<text x="{x0 + sq / 2:.1f}" y="{top - 10}" font-size="10" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">not trained</text>'
+    )
+
+    # Plus.
+    px = x0 + sq + 18
+    body.append(
+        f'<text x="{px}" y="{top + sq / 2 + 8}" font-size="26" fill="{INK_SOFT}">+</text>'
+    )
+
+    # B: tall and thin (d x r), then A: wide and short (r x k). Their shared thin
+    # dimension is the rank r, the bottleneck the whole update passes through.
+    bx = px + 30
+    body += matrix(
+        bx, top, r_thin, sq, AMBER, AMBER, "B", "d&#215;r", "#ffffff"
+    )
+    body.append(
+        f'<text x="{bx + r_thin / 2:.1f}" y="{top - 10}" font-size="10" '
+        f'text-anchor="middle" fill="{AMBER}" font-weight="700">r</text>'
+    )
+
+    mx = bx + r_thin + 12
+    body.append(
+        f'<text x="{mx}" y="{top + sq / 2 + 6}" font-size="18" fill="{INK_SOFT}">&#215;</text>'
+    )
+
+    ax_ = mx + 18
+    body += matrix(
+        ax_, top, sq, r_thin, AMBER, AMBER, "A", "r&#215;k", "#ffffff"
+    )
+    body.append(
+        f'<text x="{ax_ - 12:.1f}" y="{top + r_thin / 2 + 4:.1f}" font-size="10" '
+        f'text-anchor="end" fill="{AMBER}" font-weight="700">r</text>'
+    )
+
+    # Bracket under B and A naming their product as the update Delta-W.
+    br_y = top + sq + 30
+    body.append(
+        f'<path d="M {bx} {br_y} L {bx} {br_y + 6} L {ax_ + sq} {br_y + 6} '
+        f'L {ax_ + sq} {br_y}" fill="none" stroke="{AMBER}" stroke-width="1.2"/>'
+    )
+    body.append(
+        f'<text x="{(bx + ax_ + sq) / 2:.1f}" y="{br_y + 22}" font-size="11" '
+        f'text-anchor="middle" fill="{AMBER}" font-weight="600">'
+        f"&#916;W = BA, trainable (rank &#8804; r)</text>"
+    )
+
+    # The applied layer, stated as a formula the diagram illustrates.
+    body.append(
+        f'<text x="{width / 2}" y="{height - 14}" font-size="12" text-anchor="middle" '
+        f'fill="{INK_SOFT}">h = W&#8320;x + (&#945;/r)&#183;BAx &#160;&#160;'
+        f'<tspan fill="{MUTED}" font-style="italic" font-size="10.5">'
+        f"&#8212; only B and A carry gradients</tspan></text>"
+    )
+    return write_svg(
+        "lora-update.svg",
+        svg_doc(width, height, "the LoRA low-rank weight update", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 13.3 — QLoRA fits the frozen base by storing it in 4 bits.
+# ---------------------------------------------------------------------------
+
+
+def fig_qlora_stack() -> Path:
+    """Diagram: 4-bit frozen base dequantized on the fly, gradients only in adapters."""
+    width, height = 660, 300
+    body: list[str] = [eyebrow(24, 30, "QLoRA: 4-BIT BASE, bf16 ADAPTERS")]
+
+    # The frozen base, stored in 4 bits.
+    body += token_box(
+        30, 96, 156, 46, "W₀: 4-bit NF4", fill=ACCENT, stroke="none",
+        text_fill="#ffffff", weight=700, font_size=13,
+    )
+    body.append(
+        f'<text x="108" y="160" font-size="10" text-anchor="middle" fill="{MUTED}">'
+        f"double-quantized, frozen</text>"
+    )
+
+    # Dequantized to bf16 on the fly for the matmul.
+    body += token_box(
+        236, 96, 150, 46, "dequantize → bf16", fill="#ffffff", stroke=ACCENT,
+        text_fill=ACCENT, font_size=12,
+    )
+    body.append(
+        f'<path d="M 190 119 L 232 119" stroke="{RULE_STRONG}" stroke-width="1.6" '
+        f'marker-end="url(#q1)"/>'
+    )
+
+    # The bf16 LoRA adapters, alongside.
+    body += token_box(
+        236, 180, 150, 46, "LoRA B, A (bf16)", fill=AMBER, stroke="none",
+        text_fill="#ffffff", weight=700, font_size=12,
+    )
+
+    # Combine node, then output.
+    body.append(
+        f'<circle cx="452" cy="142" r="18" fill="#ffffff" stroke="{INK_SOFT}"/>'
+    )
+    body.append(
+        f'<text x="452" y="148" font-size="18" text-anchor="middle" fill="{INK_SOFT}">'
+        f"+</text>"
+    )
+    body.append(
+        f'<path d="M 388 119 C 414 119, 424 138, 434 140" stroke="{ACCENT}" '
+        f'stroke-width="1.6" fill="none" marker-end="url(#q1)"/>'
+    )
+    body.append(
+        f'<path d="M 388 203 C 414 203, 424 150, 434 146" stroke="{AMBER}" '
+        f'stroke-width="1.6" fill="none" marker-end="url(#q1)"/>'
+    )
+    body += token_box(
+        512, 119, 120, 46, "output h", fill=ACCENT_SOFT, stroke=ACCENT,
+        text_fill=ACCENT, weight=600, font_size=12,
+    )
+    body.append(
+        f'<path d="M 470 142 L 508 142" stroke="{ACCENT}" stroke-width="1.6" '
+        f'marker-end="url(#q1)"/>'
+    )
+
+    # The backward pass reaches only the adapters, never the frozen 4-bit base.
+    body.append(
+        f'<path d="M 572 168 C 560 250, 340 254, 312 228" stroke="{BRICK}" '
+        f'stroke-width="1.6" stroke-dasharray="6 4" fill="none" marker-end="url(#qb)"/>'
+    )
+    body.append(
+        f'<text x="440" y="270" font-size="10.5" text-anchor="middle" fill="{BRICK}">'
+        f"gradients flow into the adapters only</text>"
+    )
+    body.append(
+        f'<text x="108" y="230" font-size="10" text-anchor="middle" fill="{MUTED}" '
+        f'font-style="italic">no gradient here</text>'
+    )
+
+    body.append(
+        f'<text x="24" y="{height - 10}" font-size="10.5" fill="{INK_SOFT}">'
+        f"Result: a 65B model fine-tunes on one 48 GB GPU; paged optimizers spill "
+        f"spikes to CPU.</text>"
+    )
+    body.append(arrow_marker(ACCENT, "q1"))
+    body.append(arrow_marker(BRICK, "qb"))
+    return write_svg(
+        "qlora-stack.svg",
+        svg_doc(width, height, "the QLoRA quantized-base adapter stack", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 13.4 — most of what LoRA buys is bought by a small rank.
+# ---------------------------------------------------------------------------
+
+
+def fig_lora_rank() -> Path:
+    """Plot: task accuracy versus LoRA rank, saturating near full fine-tuning."""
+    import math
+
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    ranks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    full_ft = 0.745
+    # Illustrative: gains climb fast, then flatten just below full fine-tuning.
+    acc = [full_ft - 0.012 - 0.20 * math.exp(-r / 5.0) for r in ranks]
+
+    ax.plot(ranks, acc, color=ACCENT, linewidth=2.2, marker="o", markersize=5)
+    ax.set_xscale("log", base=2)
+
+    ax.axhline(full_ft, color=INK_SOFT, linewidth=1.0, linestyle=(0, (4, 3)))
+    ax.text(1.05, full_ft + 0.004, "full fine-tuning", fontsize=8, color=INK_SOFT)
+
+    ax.axvspan(16, 256, color=ACCENT_SOFT, alpha=0.6)
+    ax.text(64, 0.60, "diminishing\nreturns", fontsize=8.5, color=ACCENT, ha="center")
+    ax.annotate(
+        "most of the gain\nby r ≈ 16",
+        xy=(16, acc[4]),
+        xytext=(3.2, 0.70),
+        fontsize=8,
+        color=MUTED,
+        arrowprops={"arrowstyle": "-", "color": RULE_STRONG, "linewidth": 0.8},
+    )
+
+    ax.set_xticks(ranks)
+    ax.set_xticklabels([str(r) for r in ranks])
+    ax.set_xlabel("LoRA rank r (log scale)")
+    ax.set_ylabel("task accuracy")
+    ax.set_ylim(0.52, 0.78)
+    ax.set_title(
+        "Rank buys capacity with sharply diminishing returns", loc="left"
+    )
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    return save_plot(fig, "lora-rank.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 13.5 — one frozen base behaves like thousands of models.
+# ---------------------------------------------------------------------------
+
+
+def fig_adapter_serving() -> Path:
+    """Diagram: a batch of requests sharing one base, each with its own adapter."""
+    width, height = 680, 300
+    body: list[str] = [eyebrow(24, 30, "ONE BASE, MANY ADAPTERS")]
+
+    reqs = [("request → A", AMBER, 66), ("request → B", VIOLET, 138), ("request → C", BRICK, 210)]
+
+    # Incoming requests, each tagged with a small adapter.
+    for label, color, y in reqs:
+        body += token_box(
+            24, y, 120, 40, label, fill="#ffffff", stroke=color, text_fill=color,
+            font_size=11, weight=600,
+        )
+
+    # The shared base model, loaded once.
+    bx, by, bw, bh = 296, 74, 158, 168
+    body.append(
+        f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="12" fill="{ACCENT}"/>'
+    )
+    body.append(
+        f'<text x="{bx + bw / 2}" y="{by + 66}" font-size="14" font-weight="700" '
+        f'text-anchor="middle" fill="#ffffff">shared base</text>'
+    )
+    body.append(
+        f'<text x="{bx + bw / 2}" y="{by + 88}" font-size="11" text-anchor="middle" '
+        f'fill="{ACCENT_SOFT}">one copy in GPU</text>'
+    )
+    body.append(
+        f'<text x="{bx + bw / 2}" y="{by + 110}" font-size="10.5" text-anchor="middle" '
+        f'fill="{ACCENT_SOFT}">forward computed once</text>'
+    )
+
+    # Small adapter chips riding on the base, and the routing edges into it.
+    for i, (label, color, y) in enumerate(reqs):
+        chip_x = bx + 20 + i * 40
+        body.append(
+            f'<rect x="{chip_x}" y="{by - 12}" width="30" height="18" rx="4" '
+            f'fill="{color}" stroke="none"/>'
+        )
+        body.append(
+            f'<text x="{chip_x + 15}" y="{by + 1}" font-size="10" font-weight="700" '
+            f'text-anchor="middle" fill="#ffffff">{chr(65 + i)}</text>'
+        )
+        body.append(
+            f'<path d="M 148 {y + 20} C 220 {y + 20}, 240 {by + bh / 2}, {bx - 6} '
+            f'{by + bh / 2}" fill="none" stroke="{color}" stroke-width="1.6" '
+            f'opacity="0.8" marker-end="url(#s1)"/>'
+        )
+
+    body.append(
+        f'<text x="{bx + bw / 2}" y="{by - 22}" font-size="10" text-anchor="middle" '
+        f'fill="{MUTED}">few-MB adapters</text>'
+    )
+
+    # Per-request outputs.
+    for i, (label, color, y) in enumerate(reqs):
+        oy = 66 + i * 72
+        body += token_box(
+            536, oy, 120, 40, f"output {chr(65 + i)}", fill=ACCENT_SOFT,
+            stroke=color, text_fill=color, font_size=11, weight=600,
+        )
+        body.append(
+            f'<path d="M {bx + bw + 6} {by + bh / 2} C 500 {by + bh / 2}, '
+            f'510 {oy + 20}, 532 {oy + 20}" fill="none" stroke="{color}" '
+            f'stroke-width="1.4" opacity="0.7" marker-end="url(#s1)"/>'
+        )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">S-LoRA batches thousands of adapters '
+        f"against a single base copy, at throughput near the unadapted model.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "s1"))
+    return write_svg(
+        "adapter-serving.svg",
+        svg_doc(width, height, "serving many LoRA adapters over one base", body),
+    )
+
+
 FIGURES = (
     fig_lifecycle,
     fig_attention_lookup,
@@ -3680,6 +5101,23 @@ FIGURES = (
     fig_chinchilla_isoflop,
     fig_inference_aware,
     fig_emergence_metric,
+    fig_sft_behavior_cloning,
+    fig_chat_template_masking,
+    fig_sft_data_quality,
+    fig_sft_knowledge_boundary,
+    fig_demonstration_vs_preference,
+    fig_reward_model,
+    fig_rlhf_loop,
+    fig_reward_overoptimization,
+    fig_dpo_vs_rlhf,
+    fig_preference_methods,
+    fig_on_off_policy,
+    fig_constitutional_ai,
+    fig_peft_memory,
+    fig_lora_update,
+    fig_qlora_stack,
+    fig_lora_rank,
+    fig_adapter_serving,
     fig_cover,
     fig_icon,
     fig_touch_icon,

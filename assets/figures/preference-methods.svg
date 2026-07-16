@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="a comparison table of DPO-family methods">
+<text x="24.0" y="34.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">ONE FAMILY, FOUR THINGS TO DROP OR CHANGE</text>
+<text x="28.0" y="52.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="start"></text>
+<text x="212.0" y="52.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">reference</text>
+<text x="212.0" y="64.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">model?</text>
+<text x="300.0" y="52.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">paired</text>
+<text x="300.0" y="64.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">data?</text>
+<text x="396.0" y="52.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">separate</text>
+<text x="396.0" y="64.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">SFT stage?</text>
+<text x="574.0" y="52.0" font-size="10.5" font-weight="700" fill="#3b3d42" text-anchor="middle">what it changes</text>
+<rect x="16" y="74" width="688" height="38" fill="#e4e3dd" opacity="0.35"/>
+<text x="28" y="97.0" font-size="12.5" font-weight="700" fill="#274b6d">DPO</text>
+<text x="212.0" y="97.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="300.0" y="97.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="396.0" y="97.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="452.0" y="97.0" font-size="10.5" fill="#3b3d42">the baseline: implicit reward = beta log(pi/ref)</text>
+<text x="28" y="135.0" font-size="12.5" font-weight="700" fill="#17181b">IPO</text>
+<text x="212.0" y="135.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="300.0" y="135.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="396.0" y="135.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="452.0" y="135.0" font-size="10.5" fill="#3b3d42">bounds the objective so it stops overfitting</text>
+<rect x="16" y="150" width="688" height="38" fill="#e4e3dd" opacity="0.35"/>
+<text x="28" y="173.0" font-size="12.5" font-weight="700" fill="#17181b">KTO</text>
+<text x="212.0" y="173.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="300.0" y="173.0" font-size="14" text-anchor="middle" fill="#274b6d" font-weight="700">&#8212;</text>
+<text x="396.0" y="173.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="452.0" y="173.0" font-size="10.5" fill="#3b3d42">learns from lone good/bad labels, not pairs</text>
+<text x="28" y="211.0" font-size="12.5" font-weight="700" fill="#17181b">ORPO</text>
+<text x="212.0" y="211.0" font-size="14" text-anchor="middle" fill="#274b6d" font-weight="700">&#8212;</text>
+<text x="300.0" y="211.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="396.0" y="211.0" font-size="14" text-anchor="middle" fill="#274b6d" font-weight="700">&#8212;</text>
+<text x="452.0" y="211.0" font-size="10.5" fill="#3b3d42">folds SFT and preference into one stage</text>
+<rect x="16" y="226" width="688" height="38" fill="#e4e3dd" opacity="0.35"/>
+<text x="28" y="249.0" font-size="12.5" font-weight="700" fill="#17181b">SimPO</text>
+<text x="212.0" y="249.0" font-size="14" text-anchor="middle" fill="#274b6d" font-weight="700">&#8212;</text>
+<text x="300.0" y="249.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="396.0" y="249.0" font-size="14" text-anchor="middle" fill="#6a6d73">&#10003;</text>
+<text x="452.0" y="249.0" font-size="10.5" fill="#3b3d42">reference-free, length-normalized reward</text>
+<text x="24" y="288" font-size="10.5" fill="#6a6d73" font-style="italic">A dash means the method removes that ingredient. Each variant is DPO minus one assumption, not a different paradigm.</text>
+</svg>
