@@ -149,6 +149,21 @@ something, listing exactly the works that chapter cites. Keys live in
   harmless while chapters are pending, worth pruning if an entry becomes
   permanently orphaned.
 
+### Sourcing and currency
+
+This book aims to reflect the *current, load-bearing* picture, and the field
+moves fast. Before drafting or substantially revising a chapter, **research the
+present state of the art rather than writing from memory** — model names,
+benchmark results, and "what is SOTA" drift, and a confidently wrong specific is
+worse than a hedged general one. Fan out web research on the chapter's key
+claims, prefer primary sources (the paper, not a blog about it), and note where
+sources disagree so the prose can be honest about it.
+
+Then **verify every citation against the actual paper before it lands in
+`references.py`** — first author and order, year, venue, arXiv id or DOI. Treat a
+reference pulled from memory as unverified until you have opened the source; a
+wrong citation is worse than none.
+
 ### Quizzes
 
 Every chapter ends with an interactive **"Check yourself" quiz** of **4–6
