@@ -9193,6 +9193,592 @@ def fig_eval_flywheel() -> Path:
     )
 
 
+
+# ---------------------------------------------------------------------------
+# Chapter figures: reasoning.
+# ---------------------------------------------------------------------------
+def fig_reasoning_thinking_tokens() -> "Path":
+    """Plot: accuracy climbs log-linearly with thinking tokens, then saturates."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    tokens = [10 ** (2 + i * 0.03) for i in range(101)]  # 1e2 .. 1e5.
+
+    def logistic(x: float, ceil: float, k: float, m: float) -> float:
+        return ceil / (1.0 + math.exp(-k * (x - m)))
+
+    hard = [logistic(math.log10(t), 0.86, 1.7, 3.35) for t in tokens]
+    easy = [logistic(math.log10(t), 0.985, 2.4, 2.15) for t in tokens]
+
+    ax.plot(tokens, [100 * a for a in hard], color=ACCENT, linewidth=2.0,
+            label="competition math (hard)")
+    ax.plot(tokens, [100 * a for a in easy], color=AMBER, linewidth=2.0,
+            label="grade-school math (easy)")
+
+    ax.annotate(
+        "roughly a straight line\nin log(thinking tokens)",
+        xy=(2.4e3, 100 * logistic(math.log10(2.4e3), 0.86, 1.7, 3.35)),
+        xytext=(1.3e2, 66),
+        fontsize=8,
+        color=INK_SOFT,
+        arrowprops={"arrowstyle": "-", "color": MUTED, "linewidth": 0.8},
+    )
+    ax.annotate(
+        "returns flatten once the\nchain is long enough",
+        xy=(6e4, 100 * logistic(math.log10(6e4), 0.86, 1.7, 3.35)),
+        xytext=(6e3, 30),
+        fontsize=8,
+        color=MUTED,
+    )
+
+    ax.set_xscale("log")
+    ax.set_ylim(0, 100)
+    ax.set_xlabel("thinking tokens spent before answering (log scale)")
+    ax.set_ylabel("accuracy (%)")
+    ax.set_title("A second axis: buy accuracy with thinking, not size", loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower right")
+    return save_plot(fig, "thinking-tokens.svg")
+
+
+def fig_reasoning_rlvr_loop() -> "Path":
+    """Diagram: the RLVR loop — sample a chain, check the answer, reward, update."""
+    width, height = 720, 300
+    body: list[str] = [eyebrow(24, 30, "RL ON VERIFIABLE REWARDS")]
+
+    def _reasoning_stage(x, w, title, sub, fill, stroke, tfill, subfill):
+        y, h = 84, 76
+        out = [
+            f'<rect x="{x:.1f}" y="{y}" width="{w:.1f}" height="{h}" rx="9" '
+            f'fill="{fill}" stroke="{stroke}"/>',
+            f'<text x="{x + w / 2:.1f}" y="{y + 30}" font-size="12.5" '
+            f'font-weight="700" text-anchor="middle" fill="{tfill}">{title}</text>',
+        ]
+        for i, line in enumerate(sub):
+            out.append(
+                f'<text x="{x + w / 2:.1f}" y="{y + 48 + i * 14:.1f}" font-size="10" '
+                f'text-anchor="middle" fill="{subfill}">{line}</text>'
+            )
+        return out
+
+    xs = [24, 204, 400, 596]
+    ws = [154, 170, 170, 100]
+    body += _reasoning_stage(
+        xs[0], ws[0], "policy (LLM)", ["the reasoning", "model"],
+        ACCENT, "none", "#fff", ACCENT_SOFT,
+    )
+    body += _reasoning_stage(
+        xs[1], ws[1], "sample", ["chain of thought", "+ final answer"],
+        "#fff", RULE_STRONG, INK, MUTED,
+    )
+    body += _reasoning_stage(
+        xs[2], ws[2], "verifier", ["run the code /", "check the math"],
+        AMBER, "none", "#fff", "#f3e6cf",
+    )
+    body += _reasoning_stage(
+        xs[3], ws[3], "reward", ["+1 correct", "0 wrong"],
+        "#fff", RULE_STRONG, INK, MUTED,
+    )
+
+    body.append(arrow_marker(RULE_STRONG, "rl1"))
+    for i in range(3):
+        x1 = xs[i] + ws[i]
+        x2 = xs[i + 1]
+        body.append(
+            f'<path d="M {x1 + 4} 122 L {x2 - 6} 122" stroke="{RULE_STRONG}" '
+            f'stroke-width="1.6" marker-end="url(#rl1)"/>'
+        )
+
+    # Return arrow: reward back down and around to the policy (the update step).
+    body.append(arrow_marker(ACCENT, "rl2"))
+    rx = xs[3] + ws[3] / 2
+    body.append(
+        f'<path d="M {rx} 160 L {rx} 232 L {xs[0] + ws[0] / 2} 232 L '
+        f'{xs[0] + ws[0] / 2} 164" fill="none" stroke="{ACCENT}" '
+        f'stroke-width="1.8" marker-end="url(#rl2)"/>'
+    )
+    body.append(
+        f'<text x="{(rx + xs[0] + ws[0] / 2) / 2:.1f}" y="226" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}" font-weight="600">'
+        f'update the policy toward chains that scored (GRPO / PPO)</text>'
+    )
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 12}" font-size="10.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'
+        f'The reward is a checker, not a learned model — so there is nothing to '
+        f'reward-hack.</text>'
+    )
+    return write_svg(
+        "rlvr-loop.svg",
+        svg_doc(width, height, "the reinforcement learning from verifiable rewards loop", body),
+    )
+
+
+def fig_reasoning_verifier_selection() -> "Path":
+    """Diagram: sample many chains, then pick by majority vote or by a verifier."""
+    width, height = 720, 320
+    body: list[str] = [eyebrow(24, 30, "SAMPLE MANY, THEN SELECT")]
+
+    body += token_box(
+        24, 138, 84, 40, "prompt", fill=ACCENT_SOFT, stroke=ACCENT, text_fill=ACCENT
+    )
+    body.append(arrow_marker(RULE_STRONG, "vs1"))
+
+    rows = [
+        (56, "42", "0.9"),
+        (122, "38", "0.4"),
+        (188, "42", "0.85"),
+        (254, "42", "0.7"),
+    ]
+    strip_x = 176
+    for cy, ans, score in rows:
+        # Fan-out edge from the prompt to each sampled chain.
+        body.append(
+            f'<path d="M 112 158 C 150 158, 150 {cy + 15}, {strip_x - 6} {cy + 15}" '
+            f'fill="none" stroke="{RULE}" stroke-width="1.1"/>'
+        )
+        # A short strip of thinking tokens standing in for the chain.
+        for i in range(6):
+            body.append(
+                f'<rect x="{strip_x + i * 12:.1f}" y="{cy + 8}" width="9" height="14" '
+                f'rx="2" fill="{VIOLET}" opacity="0.5"/>'
+            )
+        body.append(
+            f'<path d="M {strip_x + 78} {cy + 15} L {strip_x + 96} {cy + 15}" '
+            f'stroke="{RULE_STRONG}" stroke-width="1.4" marker-end="url(#vs1)"/>'
+        )
+        body += token_box(
+            strip_x + 100, cy, 52, 30, ans, fill="#fff", stroke=RULE_STRONG, weight=700
+        )
+        body.append(
+            f'<text x="{strip_x + 176:.1f}" y="{cy + 20:.1f}" font-size="10.5" '
+            f'text-anchor="middle" fill="{AMBER}" font-weight="700">score {score}</text>'
+        )
+
+    # Two selection rules, both converging on the same answer here.
+    body.append(
+        f'<rect x="556" y="70" width="140" height="76" rx="9" fill="#fff" '
+        f'stroke="{RULE_STRONG}"/>'
+    )
+    body.append(
+        f'<text x="626" y="94" font-size="11" text-anchor="middle" fill="{INK_SOFT}" '
+        f'font-weight="700">self-consistency</text>'
+    )
+    body.append(
+        f'<text x="626" y="112" font-size="10" text-anchor="middle" fill="{MUTED}">'
+        f'majority vote</text>'
+    )
+    body += token_box(596, 120, 60, 22, "42", fill=ACCENT, stroke="none",
+                      text_fill="#fff", weight=700, font_size=12)
+
+    body.append(
+        f'<rect x="556" y="170" width="140" height="76" rx="9" fill="#fff" '
+        f'stroke="{RULE_STRONG}"/>'
+    )
+    body.append(
+        f'<text x="626" y="194" font-size="11" text-anchor="middle" fill="{INK_SOFT}" '
+        f'font-weight="700">verifier</text>'
+    )
+    body.append(
+        f'<text x="626" y="212" font-size="10" text-anchor="middle" fill="{MUTED}">'
+        f'best of n by score</text>'
+    )
+    body += token_box(596, 220, 60, 22, "42", fill=AMBER, stroke="none",
+                      text_fill="#fff", weight=700, font_size=12)
+
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 12}" font-size="10.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'
+        f'Voting trusts the crowd of chains; a verifier scores each one and keeps '
+        f'the best.</text>'
+    )
+    return write_svg(
+        "verifier-selection.svg",
+        svg_doc(width, height, "selecting among many sampled reasoning chains", body),
+    )
+
+
+def fig_reasoning_test_time_limits() -> "Path":
+    """Plot: more samples help where answers are checkable, and stall where they aren't."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    n = [2 ** i for i in range(9)]  # 1 .. 256.
+    verifier = [0.52, 0.60, 0.67, 0.73, 0.78, 0.82, 0.85, 0.87, 0.88]
+    majority = [0.52, 0.58, 0.63, 0.67, 0.70, 0.715, 0.72, 0.721, 0.721]
+    openended = [0.52, 0.53, 0.535, 0.54, 0.54, 0.545, 0.545, 0.545, 0.545]
+
+    ax.plot(n, [100 * v for v in verifier], color=ACCENT, linewidth=2.0,
+            marker="o", markersize=3.5, label="checkable task + verifier (best of n)")
+    ax.plot(n, [100 * v for v in majority], color=VIOLET, linewidth=2.0,
+            marker="o", markersize=3.5, label="checkable task, majority vote")
+    ax.plot(n, [100 * v for v in openended], color=BRICK, linewidth=2.0,
+            marker="o", markersize=3.5, label="open-ended task (no way to check)")
+
+    ax.annotate(
+        "a good verifier keeps\nturning samples into accuracy",
+        xy=(64, 85),
+        xytext=(3, 90),
+        fontsize=8,
+        color=INK_SOFT,
+    )
+    ax.annotate(
+        "nothing to select on:\ncompute buys almost nothing",
+        xy=(64, 54.5),
+        xytext=(4.5, 40),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(n)
+    ax.set_xticklabels([str(v) for v in n])
+    ax.set_ylim(30, 100)
+    ax.set_xlabel("sampled chains per question (log scale)")
+    ax.set_ylabel("accuracy (%)")
+    ax.set_title("Test-time compute is a solvent only where answers are checkable",
+                 loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    ax.legend(loc="center right")
+    return save_plot(fig, "test-time-limits.svg")
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: open-problems.
+# ---------------------------------------------------------------------------
+def fig_confidence_calibration() -> Path:
+    """Plot: a calibrated base model on the diagonal, an overconfident chat model below it."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(6.4, 3.7))
+
+    bins = [0.05 + 0.1 * i for i in range(10)]  # Bin centers from 0.05 to 0.95.
+
+    # A base model reads its own probabilities honestly: accuracy tracks confidence.
+    base = [b for b in bins]
+    # A post-trained chat model is systematically overconfident: at high stated
+    # confidence, empirical accuracy falls short of the claim.
+    chat = [b - 0.55 * max(0.0, b - 0.5) ** 1.35 for b in bins]
+
+    ax.plot(
+        [0, 1],
+        [0, 1],
+        color=INK,
+        linewidth=1.0,
+        linestyle=(0, (5, 3)),
+        label="perfect calibration",
+    )
+    ax.plot(bins, base, color=ACCENT, linewidth=2.0, marker="o", markersize=4, label="base model")
+    ax.plot(
+        bins,
+        chat,
+        color=BRICK,
+        linewidth=2.0,
+        marker="o",
+        markersize=4,
+        label="after RLHF",
+    )
+
+    # Shade the confidence gap the chat model opens up at the top end.
+    ax.fill_between(bins, chat, base, where=[c < b for c, b in zip(chat, base)], color=BRICK, alpha=0.08)
+    ax.annotate(
+        "confidently wrong:\nstated 90%, right far less often",
+        xy=(0.9, chat[-1]),
+        xytext=(0.30, 0.30),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("confidence the model expresses")
+    ax.set_ylabel("how often it is actually right")
+    ax.set_title("Calibration is a separate axis from accuracy", loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower right")
+    return save_plot(fig, "confidence-calibration.svg")
+
+
+# ---------------------------------------------------------------------------
+# 26.2 — superposition: many features packed into few directions, then unpacked.
+# ---------------------------------------------------------------------------
+
+
+def fig_superposition() -> Path:
+    """Diagram: overlapping feature directions in a cramped space, split by a sparse autoencoder."""
+    width, height = 640, 300
+    body: list[str] = [eyebrow(24, 30, "SUPERPOSITION AND SPARSE FEATURES")]
+
+    # Left: a small activation space (a disc) crowded with more concept
+    # directions than it has dimensions, so directions overlap.
+    cx, cy, r = 150, 165, 78
+    body.append(
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{ACCENT_SOFT}" stroke="{ACCENT}" stroke-width="1.2"/>'
+    )
+    body.append(
+        f'<text x="{cx}" y="{cy + r + 26}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}">activation space: a few neurons</text>'
+    )
+    angles = [18, 62, 108, 150, 200, 244, 300, 336]
+    labels = ["DNA", "French", "code bug", "sarcasm", "Bay Bridge", "legal", "if-then", "flattery"]
+    for ang, lab in zip(angles, labels):
+        rad = ang * math.pi / 180.0
+        ex = cx + r * 0.92 * math.cos(rad)
+        ey = cy - r * 0.92 * math.sin(rad)
+        body.append(
+            f'<path d="M {cx} {cy} L {ex:.1f} {ey:.1f}" stroke="{VIOLET}" '
+            f'stroke-width="1.6" opacity="0.75"/>'
+        )
+        lx = cx + (r + 12) * math.cos(rad)
+        ly = cy - (r + 12) * math.sin(rad)
+        anchor = "start" if math.cos(rad) >= 0 else "end"
+        body.append(
+            f'<text x="{lx:.1f}" y="{ly:.1f}" font-size="8.5" text-anchor="{anchor}" '
+            f'fill="{VIOLET}">{lab}</text>'
+        )
+
+    # Arrow: the sparse autoencoder that un-packs the mixture.
+    body.append(
+        f'<path d="M 258 165 L 330 165" stroke="{INK_SOFT}" stroke-width="1.6" marker-end="url(#sp1)"/>'
+    )
+    body.append(
+        f'<text x="294" y="150" font-size="9.5" text-anchor="middle" fill="{INK_SOFT}">sparse</text>'
+    )
+    body.append(
+        f'<text x="294" y="181" font-size="9.5" text-anchor="middle" fill="{INK_SOFT}">autoencoder</text>'
+    )
+
+    # Right: a stack of clean, one-concept-each features.
+    fx, fw, fh, fgap = 350, 154, 24, 9
+    fy0 = 74
+    clean = ["DNA base pairs", "written French", "buggy code", "sarcasm", "the Bay Bridge", "flattery"]
+    for i, name in enumerate(clean):
+        y = fy0 + i * (fh + fgap)
+        body += token_box(
+            fx, y, fw, fh, name, fill="#ffffff", stroke=AMBER, text_fill=INK, font_size=10
+        )
+        body.append(f'<rect x="{fx}" y="{y}" width="4" height="{fh}" rx="2" fill="{AMBER}"/>')
+    body.append(
+        f'<text x="{fx + fw / 2}" y="{fy0 - 12}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}">many features, one concept each</text>'
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">A model packs more concepts than it has '
+        f"dimensions; reading it means unpacking that overlap.</text>"
+    )
+    body.append(arrow_marker(INK_SOFT, "sp1"))
+    return write_svg(
+        "superposition.svg", svg_doc(width, height, "superposition and sparse features", body)
+    )
+
+
+# ---------------------------------------------------------------------------
+# 26.3 — scalable oversight: a weak supervisor eliciting a stronger student.
+# ---------------------------------------------------------------------------
+
+
+def fig_scalable_oversight() -> Path:
+    """Diagram: a weak, error-prone teacher labels a strong model that generalizes past it."""
+    width, height = 620, 280
+    body: list[str] = [eyebrow(24, 30, "WEAK-TO-STRONG GENERALIZATION")]
+
+    # The weak supervisor: reliable up to a point, then guessing.
+    body += token_box(
+        40, 96, 150, 66, "", fill=ACCENT_SOFT, stroke=ACCENT
+    )
+    body.append(
+        f'<text x="115" y="120" font-size="12" font-weight="700" text-anchor="middle" fill="{ACCENT}">weak supervisor</text>'
+    )
+    body.append(
+        f'<text x="115" y="138" font-size="9.5" text-anchor="middle" fill="{INK_SOFT}">human, or smaller model</text>'
+    )
+    body.append(
+        f'<text x="115" y="153" font-size="9.5" text-anchor="middle" fill="{BRICK}">labels are partly wrong</text>'
+    )
+
+    body.append(
+        f'<path d="M 192 129 L 250 129" stroke="{RULE_STRONG}" stroke-width="1.6" marker-end="url(#so1)"/>'
+    )
+    body.append(
+        f'<text x="221" y="118" font-size="9" text-anchor="middle" fill="{MUTED}">noisy</text>'
+    )
+    body.append(
+        f'<text x="221" y="150" font-size="9" text-anchor="middle" fill="{MUTED}">labels</text>'
+    )
+
+    # The strong student.
+    body += token_box(252, 96, 150, 66, "", fill="#ffffff", stroke=AMBER)
+    body.append(f'<rect x="252" y="96" width="4" height="66" rx="2" fill="{AMBER}"/>')
+    body.append(
+        f'<text x="327" y="122" font-size="12" font-weight="700" text-anchor="middle" fill="{INK}">strong model</text>'
+    )
+    body.append(
+        f'<text x="327" y="140" font-size="9.5" text-anchor="middle" fill="{INK_SOFT}">knows more than</text>'
+    )
+    body.append(
+        f'<text x="327" y="154" font-size="9.5" text-anchor="middle" fill="{INK_SOFT}">the teacher can check</text>'
+    )
+
+    # The outcome bar: three tiers of accuracy.
+    bx, bw = 452, 120
+    tiers = [
+        ("teacher", 0.42, ACCENT),
+        ("naive copy", 0.55, MUTED),
+        ("elicited", 0.78, AMBER),
+    ]
+    top, rowh = 96, 22
+    for i, (name, frac, color) in enumerate(tiers):
+        y = top + i * (rowh + 8)
+        body.append(
+            f'<rect x="{bx}" y="{y}" width="{bw}" height="{rowh}" rx="4" fill="{RULE}" />'
+        )
+        body.append(
+            f'<rect x="{bx}" y="{y}" width="{bw * frac:.1f}" height="{rowh}" rx="4" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{bx}" y="{y - 4}" font-size="9" fill="{color}">{name}</text>'
+        )
+    body.append(
+        f'<text x="{bx + bw / 2}" y="{top + 3 * (rowh + 8) + 6}" font-size="9" text-anchor="middle" '
+        f'fill="{MUTED}">accuracy recovered</text>'
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Weak labels can elicit more than the teacher '
+        f"knows, yet still fall short of the student's full capability.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "so1"))
+    return write_svg(
+        "scalable-oversight.svg",
+        svg_doc(width, height, "weak-to-strong generalization", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# 26.4 — the data wall: demand for tokens overtakes the stock of human text.
+# ---------------------------------------------------------------------------
+
+
+def fig_data_supply_demand() -> Path:
+    """Plot: training-set size climbing to meet a slowly-growing stock of public text."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(6.6, 3.7))
+
+    years = [2020 + 0.5 * i for i in range(31)]  # 2020 .. 2035.
+
+    # Stock of public human-generated text: large but growing only slowly.
+    def stock(y: float) -> float:
+        return 3.0e14 * (1.06 ** (y - 2020))
+
+    # Demand: the largest training sets have grown far faster.
+    def demand(y: float) -> float:
+        return 3.0e12 * (1.90 ** (y - 2020))
+
+    s = [stock(y) for y in years]
+    d = [demand(y) for y in years]
+
+    ax.plot(years, s, color=ACCENT, linewidth=2.0, label="stock of public human text")
+    ax.plot(years, d, color=BRICK, linewidth=2.0, label="tokens per training run")
+
+    # Mark the crossing: where demand meets supply.
+    cross = None
+    for y in years:
+        if demand(y) >= stock(y):
+            cross = y
+            break
+    if cross is not None:
+        ax.axvline(cross, color=MUTED, linewidth=1.0, linestyle=(0, (2, 3)))
+        ax.annotate(
+            "demand meets the\nusable stock",
+            xy=(cross, stock(cross)),
+            xytext=(2020.4, 2e17),
+            fontsize=8,
+            color=MUTED,
+            arrowprops={"arrowstyle": "-", "color": MUTED, "linewidth": 0.8},
+        )
+
+    ax.set_yscale("log")
+    ax.set_xlabel("year")
+    ax.set_ylabel("tokens (log scale)")
+    ax.set_title("The two curves are on a collision course", loc="left")
+    ax.grid(alpha=0.5, which="major")
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower right")
+    return save_plot(fig, "data-supply-demand.svg")
+
+
+# ---------------------------------------------------------------------------
+# 26.5 — closing: what keeps changing versus what stays worth learning.
+# ---------------------------------------------------------------------------
+
+
+def fig_what_endures() -> Path:
+    """Diagram: two columns contrasting the churn with the durable fundamentals."""
+    width, height = 640, 320
+    body: list[str] = [eyebrow(24, 30, "WHAT TO HOLD ONTO")]
+
+    def column(x: float, w: float, title: str, color: str, items: list[str]) -> None:
+        body.append(
+            f'<rect x="{x}" y="58" width="{w}" height="236" rx="10" fill="#ffffff" '
+            f'stroke="{color}" stroke-width="1.2"/>'
+        )
+        body.append(f'<rect x="{x}" y="58" width="{w}" height="6" rx="3" fill="{color}"/>')
+        body.append(
+            f'<text x="{x + w / 2}" y="88" font-size="12.5" font-weight="700" '
+            f'text-anchor="middle" fill="{color}">{title}</text>'
+        )
+        for i, it in enumerate(items):
+            y = 118 + i * 32
+            body.append(f'<circle cx="{x + 20}" cy="{y - 4}" r="3" fill="{color}"/>')
+            body.append(
+                f'<text x="{x + 34}" y="{y}" font-size="10.5" fill="{INK_SOFT}">{it}</text>'
+            )
+
+    column(
+        30,
+        272,
+        "keeps changing",
+        MUTED,
+        [
+            "which model tops the leaderboard",
+            "benchmark scores and prices",
+            "context-window and token counts",
+            "the tool and agent frameworks",
+            "this month's prompting trick",
+        ],
+    )
+    column(
+        338,
+        272,
+        "stays worth knowing",
+        ACCENT,
+        [
+            "the next-token objective (Ch 6)",
+            "attention and the transformer (Ch 4)",
+            "scaling laws as a design tool (Ch 9)",
+            "post-training and alignment (Ch 10-12)",
+            "the harness around the weights (Part V)",
+            "how you know it works (Part VI)",
+        ],
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">The names on the left turn over every few months; '
+        f"the ideas on the right have held for years.</text>"
+    )
+    return write_svg(
+        "what-endures.svg", svg_doc(width, height, "what changes versus what endures", body)
+    )
+
+
 FIGURES = (
     fig_lifecycle,
     fig_attention_lookup,
@@ -9308,6 +9894,15 @@ FIGURES = (
     fig_judge_biases,
     fig_arena_elo,
     fig_eval_flywheel,
+    fig_reasoning_thinking_tokens,
+    fig_reasoning_rlvr_loop,
+    fig_reasoning_verifier_selection,
+    fig_reasoning_test_time_limits,
+    fig_confidence_calibration,
+    fig_superposition,
+    fig_scalable_oversight,
+    fig_data_supply_demand,
+    fig_what_endures,
     fig_cover,
     fig_icon,
     fig_touch_icon,
