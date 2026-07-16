@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="527.76pt" height="264.24pt" viewBox="0 0 527.76 264.24" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-07-16T12:03:38.771973</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.4, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 264.24 
+L 527.76 264.24 
+L 527.76 0 
+L 0 0 
+L 0 264.24 
+z
+" style="fill: none"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 7.2 257.04 
+L 259.02 257.04 
+L 259.02 57.48 
+L 7.2 57.48 
+L 7.2 257.04 
+z
+" style="fill: none"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 18.646364 257.04 
+L 39.997094 257.04 
+L 39.997094 78.861429 
+L 18.646364 78.861429 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 48.300155 257.04 
+L 69.650886 257.04 
+L 69.650886 248.169011 
+L 48.300155 248.169011 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 77.953947 257.04 
+L 99.304677 257.04 
+L 99.304677 251.659473 
+L 77.953947 251.659473 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 107.607739 257.04 
+L 128.958469 257.04 
+L 128.958469 253.776546 
+L 107.607739 253.776546 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 137.261531 257.04 
+L 158.612261 257.04 
+L 158.612261 254.852441 
+L 137.261531 254.852441 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 166.915323 257.04 
+L 188.266053 257.04 
+L 188.266053 255.839442 
+L 166.915323 255.839442 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 196.569114 257.04 
+L 217.919845 257.04 
+L 217.919845 256.311825 
+L 196.569114 256.311825 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 226.222906 257.04 
+L 247.573636 257.04 
+L 247.573636 256.678399 
+L 226.222906 256.678399 
+z
+" clip-path="url(#p754defdc5b)" style="fill: #cfcdc4; opacity: 0.55"/>
+   </g>
+   <g id="matplotlib.axis_1"/>
+   <g id="matplotlib.axis_2"/>
+   <g id="line2d_1">
+    <path d="M 7.2 239.222143 
+L 259.02 239.222143 
+" clip-path="url(#p754defdc5b)" style="fill: none; stroke-dasharray: 5.6,4.2; stroke-dashoffset: 0; stroke: #9c6b12; stroke-width: 1.4"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 7.2 257.04 
+L 259.02 257.04 
+" style="fill: none; stroke: #cfcdc4; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #9c6b12; font: 7.5px 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: end" x="251.725167" y="236.820086" transform="rotate(-0 251.725167 236.820086)">min-p cutoff</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #17181b; font: 700 9px 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: start" x="7.2" y="51.48" transform="rotate(-0 7.2 51.48)">confident model (peaked)</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="patch_12">
+    <path d="M 268.74 257.04 
+L 520.56 257.04 
+L 520.56 57.48 
+L 268.74 57.48 
+L 268.74 257.04 
+z
+" style="fill: none"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 280.186364 257.04 
+L 301.537094 257.04 
+L 301.537094 219.200278 
+L 280.186364 219.200278 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 309.840155 257.04 
+L 331.190886 257.04 
+L 331.190886 224.47105 
+L 309.840155 224.47105 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 339.493947 257.04 
+L 360.844677 257.04 
+L 360.844677 227.570395 
+L 339.493947 227.570395 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_16">
+    <path d="M 369.147739 257.04 
+L 390.498469 257.04 
+L 390.498469 230.374799 
+L 369.147739 230.374799 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_17">
+    <path d="M 398.801531 257.04 
+L 420.152261 257.04 
+L 420.152261 234.089049 
+L 398.801531 234.089049 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_18">
+    <path d="M 428.455323 257.04 
+L 449.806053 257.04 
+L 449.806053 237.285933 
+L 428.455323 237.285933 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 458.109114 257.04 
+L 479.459845 257.04 
+L 479.459845 240.037517 
+L 458.109114 240.037517 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="patch_20">
+    <path d="M 487.762906 257.04 
+L 509.113636 257.04 
+L 509.113636 243.119544 
+L 487.762906 243.119544 
+z
+" clip-path="url(#pf6492e72ac)" style="fill: #274b6d"/>
+   </g>
+   <g id="matplotlib.axis_3"/>
+   <g id="matplotlib.axis_4"/>
+   <g id="line2d_2">
+    <path d="M 268.74 253.256028 
+L 520.56 253.256028 
+" clip-path="url(#pf6492e72ac)" style="fill: none; stroke-dasharray: 5.6,4.2; stroke-dashoffset: 0; stroke: #9c6b12; stroke-width: 1.4"/>
+   </g>
+   <g id="patch_21">
+    <path d="M 268.74 257.04 
+L 520.56 257.04 
+" style="fill: none; stroke: #cfcdc4; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_3">
+    <text style="fill: #9c6b12; font: 7.5px 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: end" x="513.265167" y="250.853971" transform="rotate(-0 513.265167 250.853971)">min-p cutoff</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #17181b; font: 700 9px 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: start" x="268.74" y="51.48" transform="rotate(-0 268.74 51.48)">uncertain model (flat)</text>
+   </g>
+  </g>
+  <g id="text_5">
+   <text style="fill: #17181b; font: 700 10px 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: start" x="8.136" y="14.798437" transform="rotate(-0 8.136 14.798437)">min-p's threshold is a fraction of the peak, so it tracks confidence</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p754defdc5b">
+   <rect x="7.2" y="57.48" width="251.82" height="199.56"/>
+  </clipPath>
+  <clipPath id="pf6492e72ac">
+   <rect x="268.74" y="57.48" width="251.82" height="199.56"/>
+  </clipPath>
+ </defs>
+</svg>
