@@ -3489,6 +3489,139 @@ _QUIZZES: dict[str, tuple[Question, ...]] = {
             ),
         ),
     ),
+"evaluation": (
+        Question(
+            prompt=(
+                "A model's accuracy on a public benchmark jumps sharply after a "
+                "new pretraining run. Why is this evidence weaker than it looks?"
+            ),
+            options=(
+                "A genuine capability gain and test-set leakage into training "
+                "produce the same rise, and the number alone cannot tell them apart.",
+                "Public benchmarks are multiple-choice, so their scores are dominated "
+                "by lucky guessing and a big jump is usually within the noise band.",
+                "Accuracy is the wrong metric for pretraining, which should be judged "
+                "by validation perplexity rather than by any downstream benchmark score.",
+                "Larger pretraining runs always inflate benchmark numbers because they "
+                "see more tokens, so the gain reflects data volume rather than skill.",
+            ),
+            answer=0,
+            explanation=(
+                "Contamination and real improvement are indistinguishable from the "
+                "score itself, which is why a large jump should raise suspicion until "
+                "you rule leakage out. The subtler point is that contamination does not "
+                "merely inflate the number; it silently converts a test of "
+                "generalization into a test of recall, so the metric measures a "
+                "different thing while still looking like accuracy. Exact-match "
+                "decontamination does not save you, because paraphrases of leaked "
+                "questions survive it."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You grade a new model with a strong LLM judge and average over "
+                "10,000 pairwise comparisons to shrink the error bars. Why does this "
+                "not make position and verbosity bias go away?"
+            ),
+            options=(
+                "Those biases are noise from the judge's sampling temperature, so they "
+                "cancel over many comparisons only if you also fix the temperature at zero.",
+                "They are systematic, not random, so more samples just estimate the "
+                "biased quantity more precisely.",
+                "Averaging removes them, but only when the two answers being compared "
+                "are drawn from different model families rather than the same one.",
+                "They vanish at scale, and any residual effect comes instead from the "
+                "judge's context window truncating the longer of the two answers.",
+            ),
+            answer=1,
+            explanation=(
+                "Systematic bias shifts every comparison in the same direction, so "
+                "averaging sharpens an estimate of the wrong quantity rather than "
+                "correcting it. This is why the fixes are procedural: randomize or swap "
+                "answer order and average across the swap, control for length, and keep "
+                "a model from judging its own family. It is the opposite of random noise, "
+                "which genuinely does shrink with more samples."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Chatbot Arena aggregates anonymous pairwise votes into an Elo "
+                "leaderboard. What does a high Arena rating actually certify?"
+            ),
+            options=(
+                "That the model is contamination-proof correct, since the prompts are "
+                "live and secret and therefore cannot be memorized from training data.",
+                "That the model achieves the highest factual accuracy on a fixed, "
+                "held-out question set curated by expert annotators.",
+                "That people, on average, prefer its answers to those of the models it "
+                "was matched against.",
+                "That the model wins on domain-specific professional tasks, because "
+                "arena traffic is weighted toward hard, specialized prompts.",
+            ),
+            answer=2,
+            explanation=(
+                "The arena measures aggregate human preference, which correlates with "
+                "quality but is not the same thing: raters reward confidence, formatting, "
+                "and agreement, and struggle to catch subtle factual errors. Fresh secret "
+                "prompts do make it hard to game by contamination, but that guards the "
+                "signal's integrity, not its meaning. And arena traffic skews toward "
+                "casual prompts, so it under-samples exactly the specialized work a "
+                "product may depend on."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why do n-gram-overlap metrics like BLEU and ROUGE fail as measures of "
+                "open-ended generation quality?"
+            ),
+            options=(
+                "They need a reference answer, and modern generation is judged "
+                "reference-free, so they cannot be computed on open-ended prompts at all.",
+                "They score surface word overlap with one reference, so a correct "
+                "paraphrase scores low while a fluent wrong answer reusing the "
+                "reference's words scores high.",
+                "They rely on a learned embedding model whose semantic space drifts "
+                "between releases, making scores incomparable across model versions.",
+                "They were designed for classification and return a single label, which "
+                "throws away the graded partial credit open-ended answers deserve.",
+            ),
+            answer=1,
+            explanation=(
+                "Overlap metrics reward matching surface form, not meaning, which is "
+                "backwards for tasks where the whole point is flexible phrasing. That is "
+                "why evaluation either forces output back into a checkable shape "
+                "(multiple choice, unit tests, an answer key) or hands grading to a model "
+                "or a human who can judge meaning. BLEU and ROUGE are string statistics, "
+                "not embedding models, and they do use a reference."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A team optimizes hard against its favorite eval score for months; the "
+                "score keeps climbing but users complain the product got worse. What "
+                "principle explains this?"
+            ),
+            options=(
+                "The eval set was too small, so its confidence interval widened as the "
+                "model changed and the climb is an artifact of shrinking sample size.",
+                "Reward over-optimization, which is specific to reinforcement learning "
+                "and therefore should not appear when tuning against a static eval set.",
+                "The model overfit the eval's exact examples, a problem fully solved by "
+                "holding out a fresh test split that the team never trains on.",
+                "Goodhart's law: a metric under optimization pressure stops being a good "
+                "metric.",
+            ),
+            answer=3,
+            explanation=(
+                "When a measure becomes a target, optimization finds whatever the metric "
+                "rewards rather than the ability it stood for. It is the same force as "
+                "reward over-optimization in RLHF, not a separate phenomenon, and a fresh "
+                "held-out split only delays it. The practical defense is a diverse, "
+                "evolving suite that is expensive to game precisely because it keeps "
+                "changing as the product meets reality."
+            ),
+        ),
+    ),
 }
 
 
