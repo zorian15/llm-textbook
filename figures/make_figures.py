@@ -9779,6 +9779,201 @@ def fig_what_endures() -> Path:
     )
 
 
+
+# ---------------------------------------------------------------------------
+# Appendix figures: math-reference.
+# ---------------------------------------------------------------------------
+def _mathref_grid_matrix(
+    x: float,
+    y: float,
+    rows: int,
+    cols: int,
+    cell: float,
+    fill: str,
+    stroke: str,
+) -> list[str]:
+    """Return a matrix drawn as a filled rectangle with a faint interior grid."""
+    w = cols * cell
+    h = rows * cell
+    parts = [
+        f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="3" '
+        f'fill="{fill}" stroke="{stroke}" stroke-width="1.4"/>'
+    ]
+    for c in range(1, cols):
+        gx = x + c * cell
+        parts.append(
+            f'<line x1="{gx:.1f}" y1="{y:.1f}" x2="{gx:.1f}" y2="{y + h:.1f}" '
+            f'stroke="#ffffff" stroke-width="0.8" opacity="0.7"/>'
+        )
+    for r in range(1, rows):
+        gy = y + r * cell
+        parts.append(
+            f'<line x1="{x:.1f}" y1="{gy:.1f}" x2="{x + w:.1f}" y2="{gy:.1f}" '
+            f'stroke="#ffffff" stroke-width="0.8" opacity="0.7"/>'
+        )
+    return parts
+
+
+def fig_mathref_matmul_shapes() -> Path:  # noqa: F405
+    """Diagram: matmul as a shape rule — inner dims cancel, outer dims survive."""
+    cell = 17.0
+    n, d, d_ff = 5, 4, 8  # A linear layer widening d_model to the FFN width.
+
+    width, height = 620, 250
+    cy = 118.0  # Vertical center that all three matrices align on.
+
+    def top_of(rows: int) -> float:
+        return cy - rows * cell / 2
+
+    body: list[str] = [eyebrow(24, 30, "A MATMUL IS A SHAPE RULE")]  # noqa: F405
+
+    # Left-to-right layout: X  ×  W  =  XW.
+    x_left = 44.0
+    xw_top = top_of(n)
+    body += _mathref_grid_matrix(
+        x_left, xw_top, n, d, cell, ACCENT_SOFT, ACCENT  # noqa: F405
+    )
+    # Row/col dimension labels for X.
+    body.append(
+        f'<text x="{x_left - 10:.1f}" y="{cy + 4:.1f}" font-size="12" '
+        f'text-anchor="end" fill="{ACCENT}" font-weight="700">n</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{x_left + d * cell / 2:.1f}" y="{xw_top - 8:.1f}" font-size="12" '
+        f'text-anchor="middle" fill="{MUTED}" font-weight="700">d</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{x_left + d * cell / 2:.1f}" y="{xw_top + n * cell + 20:.1f}" '
+        f'font-size="12" text-anchor="middle" fill="{INK}">X&#160;&#160;'  # noqa: F405
+        f'(n &#215; d)</text>'
+    )
+
+    # Times sign.
+    tx = x_left + d * cell + 26
+    body.append(
+        f'<text x="{tx:.1f}" y="{cy + 6:.1f}" font-size="20" text-anchor="middle" '
+        f'fill="{MUTED}">&#215;</text>'  # noqa: F405
+    )
+
+    # W: (d x d_ff).
+    w_left = tx + 26
+    w_top = top_of(d)
+    body += _mathref_grid_matrix(
+        w_left, w_top, d, d_ff, cell, "#ffffff", RULE_STRONG  # noqa: F405
+    )
+    body.append(
+        f'<text x="{w_left - 10:.1f}" y="{cy + 4:.1f}" font-size="12" '
+        f'text-anchor="end" fill="{MUTED}" font-weight="700">d</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{w_left + d_ff * cell / 2:.1f}" y="{w_top - 8:.1f}" font-size="12" '
+        f'text-anchor="middle" fill="{AMBER}" font-weight="700">d_ff</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{w_left + d_ff * cell / 2:.1f}" y="{w_top + d * cell + 20:.1f}" '
+        f'font-size="12" text-anchor="middle" fill="{INK}">W&#160;&#160;'  # noqa: F405
+        f'(d &#215; d_ff)</text>'
+    )
+
+    # Equals sign.
+    ex = w_left + d_ff * cell + 24
+    body.append(
+        f'<text x="{ex:.1f}" y="{cy + 6:.1f}" font-size="20" text-anchor="middle" '
+        f'fill="{MUTED}">=</text>'  # noqa: F405
+    )
+
+    # Output: (n x d_ff).
+    o_left = ex + 24
+    o_top = top_of(n)
+    body += _mathref_grid_matrix(
+        o_left, o_top, n, d_ff, cell, ACCENT_SOFT, ACCENT  # noqa: F405
+    )
+    body.append(
+        f'<text x="{o_left - 10:.1f}" y="{cy + 4:.1f}" font-size="12" '
+        f'text-anchor="end" fill="{ACCENT}" font-weight="700">n</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{o_left + d_ff * cell / 2:.1f}" y="{o_top - 8:.1f}" font-size="12" '
+        f'text-anchor="middle" fill="{AMBER}" font-weight="700">d_ff</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{o_left + d_ff * cell / 2:.1f}" y="{o_top + n * cell + 20:.1f}" '
+        f'font-size="12" text-anchor="middle" fill="{INK}">XW&#160;&#160;'  # noqa: F405
+        f'(n &#215; d_ff)</text>'
+    )
+
+    # The rule, spelled out.
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 16:.1f}" font-size="11.5" '
+        f'text-anchor="middle" fill="{MUTED}" font-style="italic">'  # noqa: F405
+        f'The shared inner dimension d cancels; the outer dimensions n and d_ff '
+        f'survive into the result.</text>'
+    )
+
+    return write_svg(  # noqa: F405
+        "matmul-shapes.svg",
+        svg_doc(width, height, "matrix multiply as a shape rule", body),  # noqa: F405
+    )
+
+
+def fig_mathref_cross_entropy_kl() -> Path:  # noqa: F405
+    """Plot: cross-entropy decomposes into a fixed entropy floor plus KL."""
+    style_plot()  # noqa: F405
+    fig, ax = plt.subplots(figsize=(6.6, 3.7))  # noqa: F405
+
+    models = ["random\nguess", "half-trained\nmodel", "well-trained\nmodel"]
+    entropy = 2.0  # The irreducible floor H(p), shared by every bar (bits).
+    kl = [3.0, 0.85, 0.18]  # KL(p || q) shrinks as the model improves.
+    xs = list(range(len(models)))
+
+    # Bottom segment: the entropy floor, identical across models.
+    ax.bar(
+        xs,
+        [entropy] * len(models),
+        width=0.62,
+        color=ACCENT,  # noqa: F405
+        label="entropy H(p): irreducible floor",
+        edgecolor="none",
+    )
+    # Top segment: the KL penalty stacked on top, giving cross-entropy.
+    ax.bar(
+        xs,
+        kl,
+        bottom=[entropy] * len(models),
+        width=0.62,
+        color=AMBER,  # noqa: F405
+        label="KL(p || q): what the model wastes",
+        edgecolor="none",
+    )
+
+    for x, k in zip(xs, kl):
+        total = entropy + k
+        ax.text(
+            x,
+            total + 0.12,
+            f"H(p,q) = {total:.2f}\nppl = {2 ** total:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=7.5,
+            color=INK_SOFT,  # noqa: F405
+        )
+
+    ax.axhline(entropy, color=ACCENT, linewidth=1.0, linestyle="--", alpha=0.7)  # noqa: F405
+
+    ax.set_xticks(xs)
+    ax.set_xticklabels(models, fontsize=8)
+    ax.set_ylabel("cross-entropy loss (bits)")
+    ax.set_ylim(0, 5.8)
+    ax.set_title(
+        "Cross-entropy = entropy + KL; training drives the KL term to zero",
+        loc="left",
+    )
+    ax.grid(alpha=0.4, axis="y")
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper right")
+    return save_plot(fig, "cross-entropy-kl.svg")  # noqa: F405
+
+
 FIGURES = (
     fig_lifecycle,
     fig_attention_lookup,
@@ -9903,6 +10098,8 @@ FIGURES = (
     fig_scalable_oversight,
     fig_data_supply_demand,
     fig_what_endures,
+    fig_mathref_matmul_shapes,
+    fig_mathref_cross_entropy_kl,
     fig_cover,
     fig_icon,
     fig_touch_icon,
