@@ -8813,6 +8813,386 @@ def fig_safety_refusal_tradeoff():
     return save_plot(fig, "helpful-harmless-frontier.svg")
 
 
+
+# ---------------------------------------------------------------------------
+# Chapter figures: evaluation.
+# ---------------------------------------------------------------------------
+def _eval_verdict(x: float, y: float, ok: bool) -> list[str]:
+    """Return a small circled check (pass) or cross (fail) glyph."""
+    color = ACCENT if ok else BRICK
+    glyph = "✓" if ok else "✗"
+    return [
+        f'<circle cx="{x:.1f}" cy="{y:.1f}" r="11" fill="none" stroke="{color}" stroke-width="1.6"/>',
+        f'<text x="{x:.1f}" y="{y + 4.5:.1f}" font-size="14" font-weight="700" '
+        f'text-anchor="middle" fill="{color}">{glyph}</text>',
+    ]
+
+
+def fig_open_ended_scoring() -> Path:
+    """Diagram: one prompt has many valid answers; string-match punishes variation."""
+    width, height = 640, 300
+    body: list[str] = [eyebrow(24, 30, "THE METRIC PROBLEM")]
+
+    # The prompt (two lines, so it is drawn by hand rather than via token_box).
+    body.append(
+        f'<rect x="24" y="128" width="150" height="46" rx="6" fill="{ACCENT_SOFT}" stroke="{ACCENT}"/>'
+    )
+    body.append(
+        f'<text x="99" y="147" font-size="12" text-anchor="middle" fill="{ACCENT}">Summarize the</text>'
+    )
+    body.append(
+        f'<text x="99" y="163" font-size="12" text-anchor="middle" fill="{ACCENT}">findings.</text>'
+    )
+
+    answers = [
+        "Sales rose in Q3.",
+        "Revenue grew last quarter.",
+        "Q3 was up on the year.",
+    ]
+    col_x = 260
+    box_w = 210
+    ys = [58, 128, 198]
+    for text, y in zip(answers, ys):
+        body.append(
+            f'<path d="M 176 151 C 215 151, 220 {y + 20}, {col_x - 4} {y + 20}" '
+            f'fill="none" stroke="{RULE_STRONG}" stroke-width="1.4" marker-end="url(#m1)"/>'
+        )
+        body += token_box(
+            col_x, y, box_w, 40, text, fill="#ffffff", stroke=RULE_STRONG, font_size=12
+        )
+        # Every answer is a valid summary.
+        body += _eval_verdict(col_x + box_w + 32, y + 20, True)
+
+    body.append(
+        f'<text x="{col_x + box_w / 2:.1f}" y="46" font-size="11" font-weight="700" '
+        f'text-anchor="middle" fill="{MUTED}" letter-spacing="1">ALL CORRECT</text>'
+    )
+    body.append(
+        f'<text x="{col_x + box_w + 32:.1f}" y="264" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}">a human sees</text>'
+    )
+    body.append(
+        f'<text x="{col_x + box_w + 32:.1f}" y="278" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}">three good answers</text>'
+    )
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 6:.1f}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">A metric that checks one reference string would '
+        f"mark two of these wrong.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "m1"))
+    return write_svg(
+        "open-ended-scoring.svg",
+        svg_doc(width, height, "one prompt with several equally valid answers", body),
+    )
+
+
+def fig_benchmark_saturation() -> Path:
+    """Plot: each benchmark climbs to its ceiling within a couple of years."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.7))
+
+    ceiling = 90.0
+    series = [
+        ("MMLU (2020)", ACCENT, [(2020, 44), (2021, 55), (2022, 70), (2023, 86), (2024, 89), (2025, 90)]),
+        ("GPQA (2023)", VIOLET, [(2023, 30), (2024, 50), (2025, 74), (2026, 85)]),
+        ("SWE-bench (2023)", AMBER, [(2023, 2), (2024, 20), (2025, 50), (2026, 72)]),
+    ]
+    for label, color, pts in series:
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        ax.plot(xs, ys, color=color, linewidth=1.9, marker="o", markersize=4, label=label)
+
+    ax.axhline(ceiling, color=MUTED, linewidth=1.0, linestyle=(0, (5, 3)))
+    ax.annotate(
+        "human-expert ceiling",
+        xy=(2020.1, ceiling),
+        xytext=(2020.1, 93),
+        fontsize=8,
+        color=MUTED,
+    )
+    ax.annotate(
+        "released low,\nsaturates fast",
+        xy=(2025, 74),
+        xytext=(2023.1, 60),
+        fontsize=8,
+        color=INK_SOFT,
+        arrowprops={"arrowstyle": "-", "color": MUTED, "linewidth": 0.8},
+    )
+
+    ax.set_ylim(0, 100)
+    ax.set_xticks([2020, 2021, 2022, 2023, 2024, 2025, 2026])
+    ax.set_xlabel("year")
+    ax.set_ylabel("best reported accuracy (%)")
+    ax.set_title("Benchmarks expire on a schedule", loc="left")
+    ax.grid(alpha=0.5, axis="y")
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower right")
+    return save_plot(fig, "benchmark-saturation.svg")
+
+
+def fig_contamination_inflation() -> Path:
+    """Diagram: leaked test data inflates a score, turning generalization into recall."""
+    width, height = 620, 300
+    body: list[str] = [eyebrow(24, 30, "CONTAMINATION")]
+
+    # Train corpus with one leaked test item.
+    body.append(
+        f'<rect x="24" y="70" width="176" height="150" rx="8" fill="#ffffff" stroke="{RULE_STRONG}"/>'
+    )
+    body.append(
+        f'<text x="112" y="90" font-size="11" text-anchor="middle" fill="{MUTED}" '
+        f'font-weight="700" letter-spacing="1">TRAINING CORPUS</text>'
+    )
+    for i, y in enumerate([104, 126, 148, 170, 192]):
+        leaked = i == 2
+        fill = BRICK if leaked else RULE
+        body.append(
+            f'<rect x="40" y="{y}" width="144" height="12" rx="3" fill="{fill}" '
+            f'opacity="{0.9 if leaked else 0.55}"/>'
+        )
+    body.append(
+        f'<text x="112" y="236" font-size="10" text-anchor="middle" fill="{BRICK}">one row is a test question</text>'
+    )
+
+    # Two score bars.
+    base_x = 360
+    bar_w = 68
+    base_y = 210
+    scale = 1.55  # Pixels per percentage point.
+    clean, dirty = 62, 88
+    body.append(
+        f'<path d="M 208 145 C 250 145, 270 145, {base_x - 30} 150" fill="none" '
+        f'stroke="{RULE_STRONG}" stroke-width="1.4" marker-end="url(#m2)"/>'
+    )
+    for x, val, color, lbl in [
+        (base_x, clean, ACCENT, "held-out"),
+        (base_x + 130, dirty, BRICK, "contaminated"),
+    ]:
+        h = val * scale
+        body.append(
+            f'<rect x="{x}" y="{base_y - h:.1f}" width="{bar_w}" height="{h:.1f}" rx="4" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{x + bar_w / 2:.1f}" y="{base_y - h - 8:.1f}" font-size="14" '
+            f'font-weight="700" text-anchor="middle" fill="{color}">{val}%</text>'
+        )
+        body.append(
+            f'<text x="{x + bar_w / 2:.1f}" y="{base_y + 16:.1f}" font-size="10.5" '
+            f'text-anchor="middle" fill="{MUTED}">{lbl}</text>'
+        )
+    # The gap.
+    gap_y = base_y - dirty * scale - 34
+    body.append(
+        f'<text x="{base_x + 130 + bar_w / 2:.1f}" y="{gap_y:.1f}" font-size="10.5" '
+        f'text-anchor="middle" fill="{BRICK}" font-weight="700">+26 recalled,</text>'
+    )
+    body.append(
+        f'<text x="{base_x + 130 + bar_w / 2:.1f}" y="{gap_y + 13:.1f}" font-size="10.5" '
+        f'text-anchor="middle" fill="{BRICK}" font-weight="700">not learned</text>'
+    )
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 8:.1f}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">The inflated number still looks like an '
+        f"accuracy; it now measures memory.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "m2"))
+    return write_svg(
+        "contamination-inflation.svg",
+        svg_doc(width, height, "leaked test data inflates a benchmark score", body),
+    )
+
+
+def fig_judge_biases() -> Path:
+    """Diagram: the three systematic biases of an LLM judge."""
+    width, height = 640, 260
+    body: list[str] = [eyebrow(24, 30, "WHEN THE GRADER IS A MODEL")]
+
+    cards = [
+        (
+            "Position",
+            "prefers whichever\nanswer comes first",
+            "swap A and B\n→ winner flips",
+        ),
+        (
+            "Verbosity",
+            "prefers the longer,\nmore padded answer",
+            "length beats\ncorrectness",
+        ),
+        (
+            "Self-preference",
+            "rates its own family's\noutputs higher",
+            "the judge is\nnot neutral",
+        ),
+    ]
+    cw, ch = 184, 150
+    gap = 20
+    x0 = 24
+    y0 = 56
+    for i, (title, desc, tell) in enumerate(cards):
+        x = x0 + i * (cw + gap)
+        body.append(
+            f'<rect x="{x}" y="{y0}" width="{cw}" height="{ch}" rx="10" fill="#ffffff" stroke="{RULE_STRONG}"/>'
+        )
+        body.append(
+            f'<rect x="{x}" y="{y0}" width="{cw}" height="30" rx="10" fill="{AMBER}"/>'
+        )
+        body.append(
+            f'<rect x="{x}" y="{y0 + 18}" width="{cw}" height="12" fill="{AMBER}"/>'
+        )
+        body.append(
+            f'<text x="{x + cw / 2:.1f}" y="{y0 + 20:.1f}" font-size="13" font-weight="700" '
+            f'text-anchor="middle" fill="#ffffff">{title}</text>'
+        )
+        for j, line in enumerate(desc.split("\n")):
+            body.append(
+                f'<text x="{x + cw / 2:.1f}" y="{y0 + 58 + j * 16:.1f}" font-size="11.5" '
+                f'text-anchor="middle" fill="{INK}">{line}</text>'
+            )
+        body.append(
+            f'<line x1="{x + 20}" y1="{y0 + 100}" x2="{x + cw - 20}" y2="{y0 + 100}" stroke="{RULE}"/>'
+        )
+        for j, line in enumerate(tell.split("\n")):
+            body.append(
+                f'<text x="{x + cw / 2:.1f}" y="{y0 + 120 + j * 14:.1f}" font-size="10.5" '
+                f'text-anchor="middle" fill="{MUTED}" font-style="italic">{line}</text>'
+            )
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 8:.1f}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Randomize order, control for length, and never let '
+        f"a model grade only itself.</text>"
+    )
+    return write_svg(
+        "judge-biases.svg", svg_doc(width, height, "three systematic biases of an LLM judge", body)
+    )
+
+
+def fig_arena_elo() -> Path:
+    """Diagram: anonymous pairwise votes aggregate into an Elo ranking."""
+    width, height = 640, 300
+    body: list[str] = [eyebrow(24, 30, "THE ARENA")]
+
+    # A single anonymous battle on the left.
+    body.append(
+        f'<rect x="24" y="66" width="230" height="176" rx="10" fill="#ffffff" stroke="{RULE_STRONG}"/>'
+    )
+    body.append(
+        f'<text x="139" y="88" font-size="11" text-anchor="middle" fill="{MUTED}" '
+        f'font-weight="700" letter-spacing="1">ONE BATTLE</text>'
+    )
+    body += token_box(44, 100, 90, 30, "model A", fill=ACCENT_SOFT, stroke=ACCENT, text_fill=ACCENT, font_size=11)
+    body += token_box(144, 100, 90, 30, "model B", fill=ACCENT_SOFT, stroke=ACCENT, text_fill=ACCENT, font_size=11)
+    body.append(
+        f'<text x="139" y="152" font-size="10.5" text-anchor="middle" fill="{MUTED}">same prompt, hidden names</text>'
+    )
+    body += token_box(74, 168, 130, 32, "user picks A", fill=AMBER, stroke="none", text_fill="#fff", font_size=12, weight=700)
+    body.append(
+        f'<text x="139" y="222" font-size="10.5" text-anchor="middle" fill="{MUTED}">× hundreds of thousands</text>'
+    )
+
+    # Arrow to the leaderboard.
+    body.append(
+        f'<path d="M 258 154 L 322 154" stroke="{RULE_STRONG}" stroke-width="1.6" marker-end="url(#m3)"/>'
+    )
+
+    # Elo leaderboard on the right.
+    board_x = 340
+    body.append(
+        f'<text x="{board_x}" y="80" font-size="11" fill="{MUTED}" font-weight="700" letter-spacing="1">ELO LEADERBOARD</text>'
+    )
+    rows = [
+        ("model B", 1287, ACCENT, 1.0),
+        ("model D", 1251, VIOLET, 0.86),
+        ("model A", 1219, MUTED, 0.74),
+        ("model C", 1180, RULE_STRONG, 0.58),
+    ]
+    ry = 96
+    max_w = 210
+    for name, rating, color, frac in rows:
+        body.append(
+            f'<rect x="{board_x}" y="{ry}" width="{max_w * frac:.1f}" height="26" rx="4" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{board_x + 8}" y="{ry + 17}" font-size="11.5" fill="#ffffff" font-weight="700">{name}</text>'
+        )
+        body.append(
+            f'<text x="{board_x + max_w + 12}" y="{ry + 17}" font-size="11.5" fill="{INK}" font-weight="700">{rating}</text>'
+        )
+        ry += 36
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 8:.1f}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Many pairwise votes become one relative ranking — '
+        f"of preference, not of correctness.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "m3"))
+    return write_svg(
+        "arena-elo.svg", svg_doc(width, height, "pairwise votes aggregated into an Elo ranking", body)
+    )
+
+
+def fig_eval_flywheel() -> Path:
+    """Diagram: production failures cycle into a growing regression suite."""
+    width, height = 600, 340
+    cx, cy, r = 300, 178, 108
+    body: list[str] = [eyebrow(24, 30, "EVAL-DRIVEN DEVELOPMENT")]
+
+    nodes = [
+        ("Ship", "a change to prod", ACCENT),
+        ("Log", "capture every trace", VIOLET),
+        ("Label", "triage the failures", AMBER),
+        ("Grow the eval set", "each failure → a case", BRICK),
+        ("Regression-test", "gate the next release", ACCENT),
+    ]
+    n = len(nodes)
+    pts = []
+    for i in range(n):
+        ang = -math.pi / 2 + i * 2 * math.pi / n
+        pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
+
+    # Curved arrows around the ring.
+    body.append(arrow_marker(ACCENT, "m4"))
+    for i in range(n):
+        x1, y1 = pts[i]
+        x2, y2 = pts[(i + 1) % n]
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        # Push the control point outward for a gentle arc.
+        ox, oy = mx - cx, my - cy
+        norm = math.hypot(ox, oy) or 1.0
+        ctrl_x = mx + (ox / norm) * 26
+        ctrl_y = my + (oy / norm) * 26
+        body.append(
+            f'<path d="M {x1:.1f} {y1:.1f} Q {ctrl_x:.1f} {ctrl_y:.1f} {x2:.1f} {y2:.1f}" '
+            f'fill="none" stroke="{ACCENT}" stroke-width="1.6" opacity="0.55" marker-end="url(#m4)"/>'
+        )
+
+    for (x, y), (title, sub, color) in zip(pts, nodes):
+        bw, bh = 128, 46
+        body.append(
+            f'<rect x="{x - bw / 2:.1f}" y="{y - bh / 2:.1f}" width="{bw}" height="{bh}" rx="8" '
+            f'fill="#ffffff" stroke="{color}" stroke-width="1.6"/>'
+        )
+        body.append(
+            f'<text x="{x:.1f}" y="{y - 3:.1f}" font-size="12" font-weight="700" '
+            f'text-anchor="middle" fill="{color}">{title}</text>'
+        )
+        body.append(
+            f'<text x="{x:.1f}" y="{y + 12:.1f}" font-size="9.5" text-anchor="middle" fill="{MUTED}">{sub}</text>'
+        )
+
+    body.append(
+        f'<text x="{cx:.1f}" y="{cy + 3:.1f}" font-size="11" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">the flywheel</text>'
+    )
+    body.append(
+        f'<text x="{width / 2:.1f}" y="{height - 8:.1f}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Every real failure becomes a permanent test, so the '
+        f"same regression never ships twice.</text>"
+    )
+    return write_svg(
+        "eval-flywheel.svg", svg_doc(width, height, "the eval-driven development flywheel", body)
+    )
+
+
 FIGURES = (
     fig_lifecycle,
     fig_attention_lookup,
@@ -8922,6 +9302,12 @@ FIGURES = (
     fig_safety_guard_pipeline,
     fig_safety_base_rate,
     fig_safety_refusal_tradeoff,
+    fig_open_ended_scoring,
+    fig_benchmark_saturation,
+    fig_contamination_inflation,
+    fig_judge_biases,
+    fig_arena_elo,
+    fig_eval_flywheel,
     fig_cover,
     fig_icon,
     fig_touch_icon,

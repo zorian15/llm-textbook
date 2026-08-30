@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="the eval-driven development flywheel">
+<text x="24.0" y="30.0" font-size="11" font-weight="700" fill="#6a6d73" letter-spacing="1">EVAL-DRIVEN DEVELOPMENT</text>
+<defs><marker id="m4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#274b6d"/></marker></defs>
+<path d="M 300.0 70.0 Q 366.6 86.3 402.7 144.6" fill="none" stroke="#274b6d" stroke-width="1.6" opacity="0.55" marker-end="url(#m4)"/>
+<path d="M 402.7 144.6 Q 407.8 213.0 363.5 265.4" fill="none" stroke="#274b6d" stroke-width="1.6" opacity="0.55" marker-end="url(#m4)"/>
+<path d="M 363.5 265.4 Q 300.0 291.4 236.5 265.4" fill="none" stroke="#274b6d" stroke-width="1.6" opacity="0.55" marker-end="url(#m4)"/>
+<path d="M 236.5 265.4 Q 192.2 213.0 197.3 144.6" fill="none" stroke="#274b6d" stroke-width="1.6" opacity="0.55" marker-end="url(#m4)"/>
+<path d="M 197.3 144.6 Q 233.4 86.3 300.0 70.0" fill="none" stroke="#274b6d" stroke-width="1.6" opacity="0.55" marker-end="url(#m4)"/>
+<rect x="236.0" y="47.0" width="128" height="46" rx="8" fill="#ffffff" stroke="#274b6d" stroke-width="1.6"/>
+<text x="300.0" y="67.0" font-size="12" font-weight="700" text-anchor="middle" fill="#274b6d">Ship</text>
+<text x="300.0" y="82.0" font-size="9.5" text-anchor="middle" fill="#6a6d73">a change to prod</text>
+<rect x="338.7" y="121.6" width="128" height="46" rx="8" fill="#ffffff" stroke="#6b4f9c" stroke-width="1.6"/>
+<text x="402.7" y="141.6" font-size="12" font-weight="700" text-anchor="middle" fill="#6b4f9c">Log</text>
+<text x="402.7" y="156.6" font-size="9.5" text-anchor="middle" fill="#6a6d73">capture every trace</text>
+<rect x="299.5" y="242.4" width="128" height="46" rx="8" fill="#ffffff" stroke="#9c6b12" stroke-width="1.6"/>
+<text x="363.5" y="262.4" font-size="12" font-weight="700" text-anchor="middle" fill="#9c6b12">Label</text>
+<text x="363.5" y="277.4" font-size="9.5" text-anchor="middle" fill="#6a6d73">triage the failures</text>
+<rect x="172.5" y="242.4" width="128" height="46" rx="8" fill="#ffffff" stroke="#b04a3f" stroke-width="1.6"/>
+<text x="236.5" y="262.4" font-size="12" font-weight="700" text-anchor="middle" fill="#b04a3f">Grow the eval set</text>
+<text x="236.5" y="277.4" font-size="9.5" text-anchor="middle" fill="#6a6d73">each failure → a case</text>
+<rect x="133.3" y="121.6" width="128" height="46" rx="8" fill="#ffffff" stroke="#274b6d" stroke-width="1.6"/>
+<text x="197.3" y="141.6" font-size="12" font-weight="700" text-anchor="middle" fill="#274b6d">Regression-test</text>
+<text x="197.3" y="156.6" font-size="9.5" text-anchor="middle" fill="#6a6d73">gate the next release</text>
+<text x="300.0" y="181.0" font-size="11" text-anchor="middle" fill="#6a6d73" font-style="italic">the flywheel</text>
+<text x="300.0" y="332.0" font-size="10.5" text-anchor="middle" fill="#6a6d73" font-style="italic">Every real failure becomes a permanent test, so the same regression never ships twice.</text>
+</svg>

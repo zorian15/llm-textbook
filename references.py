@@ -2075,6 +2075,101 @@ _ENTRIES: tuple[Reference, ...] = (
         arxiv="",
         url="https://www.anthropic.com/research/many-shot-jailbreaking",
     ),
+    Reference(
+        key="hendrycks2021",
+        authors=(
+            "Hendrycks, D.",
+            "Burns, C.",
+            "Basart, S.",
+            "Zou, A.",
+        ),
+        truncated=True,
+        year=2021,
+        title="Measuring massive multitask language understanding",
+        venue="International Conference on Learning Representations",
+        arxiv="2009.03300",
+        url="",
+    ),
+
+    Reference(
+        key="zheng2023",
+        authors=(
+            "Zheng, L.",
+            "Chiang, W.-L.",
+            "Sheng, Y.",
+            "Zhuang, S.",
+        ),
+        truncated=True,
+        year=2023,
+        title="Judging LLM-as-a-judge with MT-Bench and Chatbot Arena",
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2306.05685",
+        url="",
+    ),
+
+    Reference(
+        key="chiang2024",
+        authors=(
+            "Chiang, W.-L.",
+            "Zheng, L.",
+            "Sheng, Y.",
+            "Angelopoulos, A. N.",
+        ),
+        truncated=True,
+        year=2024,
+        title="Chatbot Arena: an open platform for evaluating LLMs by human preference",
+        venue="International Conference on Machine Learning",
+        arxiv="2403.04132",
+        url="",
+    ),
+
+    Reference(
+        key="rein2023",
+        authors=(
+            "Rein, D.",
+            "Hou, B. L.",
+            "Stickland, A. C.",
+            "Petty, J.",
+        ),
+        truncated=True,
+        year=2023,
+        title="GPQA: a graduate-level Google-proof Q&A benchmark",
+        venue="arXiv preprint",
+        arxiv="2311.12022",
+        url="",
+    ),
+
+    Reference(
+        key="jimenez2024",
+        authors=(
+            "Jimenez, C. E.",
+            "Yang, J.",
+            "Wettig, A.",
+            "Yao, S.",
+        ),
+        truncated=True,
+        year=2024,
+        title="SWE-bench: can language models resolve real-world GitHub issues?",
+        venue="International Conference on Learning Representations",
+        arxiv="2310.06770",
+        url="",
+    ),
+
+    Reference(
+        key="liang2022",
+        authors=(
+            "Liang, P.",
+            "Bommasani, R.",
+            "Lee, T.",
+            "Tsipras, D.",
+        ),
+        truncated=True,
+        year=2022,
+        title="Holistic evaluation of language models",
+        venue="Transactions on Machine Learning Research",
+        arxiv="2211.09110",
+        url="",
+    ),
 )
 
 
