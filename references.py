@@ -2170,6 +2170,185 @@ _ENTRIES: tuple[Reference, ...] = (
         arxiv="2211.09110",
         url="",
     ),
+    Reference(
+        key="lightman2023",
+        authors=(
+            "Lightman, H.",
+            "Kosaraju, V.",
+            "Burda, Y.",
+            "Edwards, H.",
+            "Baker, B.",
+            "Lee, T.",
+            "Leike, J.",
+            "Schulman, J.",
+            "Sutskever, I.",
+            "Cobbe, K.",
+        ),
+        truncated=False,
+        year=2023,
+        title="Let's verify step by step",
+        venue="arXiv preprint",
+        arxiv="2305.20050",
+        url="",
+    ),
+
+    Reference(
+        key="zelikman2022",
+        authors=("Zelikman, E.", "Wu, Y.", "Mu, J.", "Goodman, N. D."),
+        truncated=False,
+        year=2022,
+        title="STaR: Bootstrapping reasoning with reasoning",
+        venue="NeurIPS",
+        arxiv="2203.14465",
+        url="",
+    ),
+
+    Reference(
+        key="snell2024",
+        authors=("Snell, C.", "Lee, J.", "Xu, K.", "Kumar, A."),
+        truncated=False,
+        year=2024,
+        title=(
+            "Scaling LLM test-time compute optimally can be more effective "
+            "than scaling model parameters"
+        ),
+        venue="arXiv preprint",
+        arxiv="2408.03314",
+        url="",
+    ),
+
+    Reference(
+        key="yao2023tot",
+        authors=(
+            "Yao, S.",
+            "Yu, D.",
+            "Zhao, J.",
+            "Shafran, I.",
+            "Griffiths, T. L.",
+            "Cao, Y.",
+            "Narasimhan, K.",
+        ),
+        truncated=False,
+        year=2023,
+        title="Tree of Thoughts: Deliberate problem solving with large language models",
+        venue="NeurIPS",
+        arxiv="2305.10601",
+        url="",
+    ),
+
+    Reference(
+        key="kalai2025",
+        authors=(
+            "Kalai, A. T.",
+            "Nachum, O.",
+            "Vempala, S. S.",
+            "Zhang, E.",
+        ),
+        truncated=False,
+        year=2025,
+        title="Why language models hallucinate",
+        venue="arXiv preprint",
+        arxiv="2509.04664",
+        url="",
+    ),
+
+    Reference(
+        key="huang2023",
+        authors=(
+            "Huang, L.",
+            "Yu, W.",
+            "Ma, W.",
+            "Zhong, W.",
+            "Feng, Z.",
+        ),
+        truncated=True,
+        year=2023,
+        title=(
+            "A survey on hallucination in large language models: Principles, "
+            "taxonomy, challenges, and open questions"
+        ),
+        venue="ACM Transactions on Information Systems",
+        arxiv="2311.05232",
+        url="",
+    ),
+
+    Reference(
+        key="elhage2022",
+        authors=(
+            "Elhage, N.",
+            "Hume, T.",
+            "Olsson, C.",
+            "Schiefer, N.",
+            "Henighan, T.",
+        ),
+        truncated=True,
+        year=2022,
+        title="Toy models of superposition",
+        venue="Transformer Circuits Thread",
+        arxiv="",
+        url="https://transformer-circuits.pub/2022/toy_model/index.html",
+    ),
+
+    Reference(
+        key="templeton2024",
+        authors=(
+            "Templeton, A.",
+            "Conerly, T.",
+            "Marcus, J.",
+            "Lindsey, J.",
+            "Bricken, T.",
+        ),
+        truncated=True,
+        year=2024,
+        title=(
+            "Scaling monosemanticity: Extracting interpretable features from "
+            "Claude 3 Sonnet"
+        ),
+        venue="Transformer Circuits Thread",
+        arxiv="",
+        url="https://transformer-circuits.pub/2024/scaling-monosemanticity/",
+    ),
+
+    Reference(
+        key="burns2023",
+        authors=(
+            "Burns, C.",
+            "Izmailov, P.",
+            "Kirchner, J. H.",
+            "Baker, B.",
+            "Gao, L.",
+        ),
+        truncated=True,
+        year=2023,
+        title=(
+            "Weak-to-strong generalization: Eliciting strong capabilities with "
+            "weak supervision"
+        ),
+        venue="arXiv preprint",
+        arxiv="2312.09390",
+        url="",
+    ),
+
+    Reference(
+        key="villalobos2022",
+        authors=(
+            "Villalobos, P.",
+            "Ho, A.",
+            "Sevilla, J.",
+            "Besiroglu, T.",
+            "Heim, L.",
+            "Hobbhahn, M.",
+        ),
+        truncated=False,
+        year=2022,
+        title=(
+            "Will we run out of data? Limits of LLM scaling based on "
+            "human-generated data"
+        ),
+        venue="arXiv preprint",
+        arxiv="2211.04325",
+        url="",
+    ),
 )
 
 

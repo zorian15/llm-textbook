@@ -3489,7 +3489,7 @@ _QUIZZES: dict[str, tuple[Question, ...]] = {
             ),
         ),
     ),
-"evaluation": (
+    "evaluation": (
         Question(
             prompt=(
                 "A model's accuracy on a public benchmark jumps sharply after a "
@@ -3619,6 +3619,286 @@ _QUIZZES: dict[str, tuple[Question, ...]] = {
                 "held-out split only delays it. The practical defense is a diverse, "
                 "evolving suite that is expensive to game precisely because it keeps "
                 "changing as the product meets reality."
+            ),
+        ),
+    ),
+    "reasoning": (
+        Question(
+            prompt=(
+                "What actually distinguishes a reasoning model from ordinary "
+                'chain-of-thought prompting ("let\'s think step by step")?'
+            ),
+            options=(
+                "RL trained the long chain into its weights, so it appears "
+                "unprompted and was optimized to reach a checkable answer.",
+                "It relies on a much larger context window at inference, which is "
+                "the only reason it can afford to hold a longer chain of reasoning.",
+                "It is handed many more few-shot reasoning exemplars in the prompt "
+                "on every call, and that is what elicits the longer chain of thought.",
+                "It disables stochastic sampling during decoding so that its single "
+                "deterministic chain of thought can never derail partway through.",
+            ),
+            answer=0,
+            explanation=(
+                "Prompted chain-of-thought is a property of your input and vanishes "
+                "if you change the prompt; a reasoning model has the long-chain habit "
+                "trained in and produces it unprompted. Crucially it was trained under "
+                "a reward that only scores the final answer, so the chain is optimized "
+                "to be useful, not merely to match the format of some exemplars."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why does RL from verifiable rewards (RLVR) largely escape the "
+                "reward-hacking problem that dogs RLHF?"
+            ),
+            options=(
+                "It replaces the learned reward model with a much larger, better "
+                "calibrated one that is far harder for the policy to fool over time.",
+                "It freezes most of the policy during training so the model cannot "
+                "drift far enough toward degenerate, reward-exploiting behaviors.",
+                "The reward is a deterministic checker, not a learned proxy that can "
+                "be exploited.",
+                "It optimizes directly against human preference labels, which unlike "
+                "a reward model cannot be gamed by superficially pleasing outputs.",
+            ),
+            answer=2,
+            explanation=(
+                "RLHF optimizes against a learned reward model, an imperfect proxy the "
+                "policy learns to exploit. A verifiable reward is a unit test or an "
+                "answer key: a wrong numerical answer earns nothing however fluent the "
+                "argument for it. The cost of that robustness is scope — it only exists "
+                "where an answer can be checked automatically."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A process reward model scores each step of a solution, while an "
+                "outcome reward model scores only the final answer. Why does step-level "
+                "supervision tend to train better reasoners?"
+            ),
+            options=(
+                "It aggregates the confidence of each step to produce a more accurate "
+                "score for the final answer than outcome scoring can reach.",
+                "It removes the need for any verifier at inference, because a "
+                "step-scored model learns to correct itself without external checking.",
+                "It rewards the model for skipping steps it has already verified, which "
+                "shortens chains and lowers the token cost of each answer.",
+                "It can reward catching the first mistake, not just the final total.",
+            ),
+            answer=3,
+            explanation=(
+                "Outcome supervision only tells the model whether the endpoint was "
+                "right; process supervision points at where a chain went wrong, which is "
+                "a much denser and more reliable training signal. It is also why "
+                'step-level verifiers ("let\'s verify step by step") beat answer-only '
+                "verifiers even when both are used purely to select among samples."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You sample 64 chains per query and take the best of them. On a "
+                "subjective writing task with no automatic notion of correctness, what "
+                "should you expect?"
+            ),
+            options=(
+                "A large gain, because majority voting across the 64 chains still "
+                "cancels out the errors in any single derailed chain.",
+                "Little gain, because there is nothing for a verifier to select on.",
+                "It is not even possible, since sampling multiple chains requires a "
+                "verifiable reward to be defined in the first place.",
+                "A reliable drop in latency, because the 64 chains are generated in "
+                "parallel and the fastest correct one is returned.",
+            ),
+            answer=1,
+            explanation=(
+                "Both self-consistency and best-of-n need a way to compare answers — a "
+                "shared correct value to vote on, or a verifier to score. Open-ended "
+                "answers rarely coincide and cannot be checked, so extra samples buy "
+                "almost nothing. Test-time scaling is powered by the verifier, not by "
+                "the compute alone."
+            ),
+        ),
+        Question(
+            prompt=(
+                'When people call test-time compute a "new scaling axis," what is the '
+                "precise claim?"
+            ),
+            options=(
+                "Inference-time compute obeys the same fitted power law that Chapter "
+                "9 established for pretraining compute, just measured at serve time.",
+                "The tokens a model generates can be fed back to retrain it per query, "
+                "so each answer permanently improves the weights a little.",
+                "Larger context windows have become the dominant driver of accuracy, "
+                "displacing parameter count as the thing worth scaling.",
+                "With weights fixed, spending more inference tokens on reasoning raises "
+                "accuracy — an axis the pretraining laws do not model.",
+            ),
+            answer=3,
+            explanation=(
+                "The Chapter 9 laws relate loss to training compute and are silent "
+                "about inference compute. Reasoning models add that axis: accuracy on "
+                "hard problems rises roughly log-linearly in the thinking-token budget, "
+                "with the weights untouched. It is a distinct relationship, not the same "
+                "pretraining law relabeled."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A reasoning model emits a long, fluent, internally consistent chain "
+                "and then a final answer. What may you legitimately conclude from the "
+                "chain?"
+            ),
+            options=(
+                "That the answer is very likely correct, since a chain whose steps "
+                "cohere so tightly rarely arrives at a wrong endpoint.",
+                "That every step was scored by a process reward model before the answer "
+                "was allowed to be emitted to you.",
+                "Not that it faithfully reflects the computation, since the stated "
+                "chain need not be the answer's true cause.",
+                "That the same chain will be reproduced on a resample, because trained "
+                "reasoning traces are stable across decoding runs.",
+            ),
+            answer=2,
+            explanation=(
+                "Stated reasoning is not certified faithful: a model can reach a "
+                "conclusion by one route and narrate another, so a plausible chain is "
+                "not a proof. This is the same faithfulness caveat from Chapter 18, and "
+                "it is why a correct-looking rationale can sit atop a wrong answer and "
+                "vice versa."
+            ),
+        ),
+    ),
+    "open-problems": (
+        Question(
+            prompt=(
+                "A model answers 1,000 trivia questions, stating a confidence with "
+                "each. It is right 70% of the time overall, and among the answers it "
+                'marked "90% sure" it is right about 65% of the time. What does this '
+                "show?"
+            ),
+            options=(
+                "It is miscalibrated: its stated confidence overstates its real "
+                "accuracy, separate from its overall hit rate.",
+                "It is simply inaccurate, since a 70% overall hit rate means the "
+                "confidence numbers it reports carry essentially no information.",
+                "It is well calibrated, because 70% accuracy sits close to the "
+                "average confidence the model expressed across the whole set.",
+                "This pattern is expected of any base model and is what preference "
+                "optimization reliably corrects during alignment.",
+            ),
+            answer=0,
+            explanation=(
+                "Calibration asks whether stated confidence matches the hit rate at "
+                "that confidence. The 90%-claim-but-65%-correct gap is textbook "
+                "miscalibration, and it is independent of the 70% overall accuracy. "
+                "The tempting trap is the reverse: alignment usually degrades "
+                "calibration rather than fixing it, making a model more useful and "
+                "more confidently wrong at once."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Which statement about retrieval-augmented generation (RAG) and "
+                "hallucination is most accurate?"
+            ),
+            options=(
+                "It grounds answers whose content sits in a retrieved passage, but "
+                "leaves reasoning errors, source-blending, and miscalibration in "
+                "place.",
+                "It eliminates hallucination for any question, because the model now "
+                "copies from retrieved documents instead of drawing on its own "
+                "weights.",
+                "It helps mainly by lowering the effective decoding temperature, "
+                "which reduces the model's tendency to wander off into invention.",
+                "It removes the need to teach abstention, since a retrieved document "
+                "is guaranteed to contain the correct answer to the query.",
+            ),
+            answer=0,
+            explanation=(
+                "RAG narrows the surface for error to questions whose answer lives in "
+                "a document; it does not change the next-token objective that makes "
+                "the model want to sound right. The model can still misread a "
+                "passage, merge two sources, or confabulate in the gaps, so "
+                "calibration and abstention remain unsolved. Claiming RAG 'solves' "
+                "hallucination is a common interview red flag."
+            ),
+        ),
+        Question(
+            prompt="Why are sparse autoencoders central to current interpretability work?",
+            options=(
+                "A model stores more concepts than it has neurons, so features "
+                "overlap; the autoencoder re-expresses activations as sparser, more "
+                "single-concept features.",
+                "Individual neurons in a trained transformer are already "
+                "monosemantic, and the autoencoder merely compresses them so the "
+                "analysis runs faster.",
+                "They let researchers retrain the model to remove superposition "
+                "entirely, producing a network where one neuron means exactly one "
+                "human concept.",
+                "They convert the model's attention weights directly into a "
+                "lossless, fully human-readable map of every circuit the trained "
+                "network relies on.",
+            ),
+            answer=0,
+            explanation=(
+                "Superposition packs many concept directions into a space with fewer "
+                "dimensions, so raw neurons are polysemantic. A sparse autoencoder "
+                "learns an overcomplete, sparse basis whose features are closer to "
+                "single concepts, and steering those features changes behavior. Note "
+                "the leak: the decomposition is lossy, and naming features is still "
+                "not the same as reading the circuit that composes them."
+            ),
+        ),
+        Question(
+            prompt=(
+                "In the weak-to-strong generalization experiments, a strong model is "
+                "fine-tuned on labels produced by a much weaker supervisor. What is "
+                "the central finding?"
+            ),
+            options=(
+                "The student exceeds the weak teacher, recovering much but not all of "
+                "its own latent capability.",
+                "The student's accuracy is capped at the teacher's, because a model "
+                "can only ever learn what its training labels explicitly contain.",
+                "The student matches the teacher almost exactly, confirming that "
+                "label quality imposes a hard ceiling on what fine-tuning can reach.",
+                "The student collapses toward random performance, since the teacher's "
+                "noisy labels overwrite what pretraining had already installed.",
+            ),
+            answer=0,
+            explanation=(
+                "A strong student trained on a weak teacher's flawed labels can beat "
+                "the teacher, which shows latent capability is elicitable from "
+                "imperfect supervision. But it does not fully close the gap to its "
+                "own ceiling, and that residual gap is exactly the part you cannot "
+                "certify when a model outruns its grader. That is why the result is "
+                "encouraging and a warning at once."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why is 'running out of high-quality human text' a genuine concern "
+                "for continued scaling?"
+            ),
+            options=(
+                "Compute and parameters can keep rising, but the stock of public "
+                "human text grows slowly and frontier runs are nearing it.",
+                "Synthetic data already replaces human text at no quality cost, so "
+                "the only remaining limit on scaling is the price of inference.",
+                "The transformer cannot attend over more than a fixed number of "
+                "tokens, so additional training data cannot be used regardless of "
+                "supply.",
+                "Scaling laws predict that loss begins to rise as soon as any single "
+                "token is seen more than once during pretraining.",
+            ),
+            answer=0,
+            explanation=(
+                "Data is the one scaling knob with a floor: projections put the "
+                "crossing of demand and usable stock in the late 2020s to early "
+                "2030s. The near-miss overstates synthetic data, which risks model "
+                "collapse when trained on naively, and repeating tokens for a few "
+                "epochs helps only up to a point before returns fall off."
             ),
         ),
     ),
