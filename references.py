@@ -1306,6 +1306,334 @@ _ENTRIES: tuple[Reference, ...] = (
         arxiv="2311.03285",
         url="",
     ),
+    Reference(
+        key="fan2018",
+        authors=("Fan, A.", "Lewis, M.", "Dauphin, Y."),
+        truncated=False,
+        year=2018,
+        title="Hierarchical neural story generation",
+        venue="Annual Meeting of the Association for Computational Linguistics",
+        arxiv="1805.04833",
+        url="",
+    ),
+
+    Reference(
+        key="holtzman2020",
+        authors=("Holtzman, A.", "Buys, J.", "Du, L.", "Forbes, M.", "Choi, Y."),
+        truncated=False,
+        year=2020,
+        title="The curious case of neural text degeneration",
+        venue="International Conference on Learning Representations",
+        arxiv="1904.09751",
+        url="",
+    ),
+
+    Reference(
+        key="keskar2019",
+        authors=(
+            "Keskar, N. S.",
+            "McCann, B.",
+            "Varshney, L. R.",
+            "Xiong, C.",
+            "Socher, R.",
+        ),
+        truncated=False,
+        year=2019,
+        title="CTRL: A conditional transformer language model for controllable generation",
+        venue="arXiv preprint",
+        arxiv="1909.05858",
+        url="",
+    ),
+
+    Reference(
+        key="meister2023",
+        authors=("Meister, C.", "Pimentel, T.", "Wiher, G.", "Cotterell, R."),
+        truncated=False,
+        year=2023,
+        title="Locally typical sampling",
+        venue="Transactions of the Association for Computational Linguistics, 11",
+        arxiv="2202.00666",
+        url="",
+    ),
+
+    Reference(
+        key="nguyen2024",
+        authors=(
+            "Nguyen, M.",
+            "Baker, A.",
+            "Neo, C.",
+            "Roush, A.",
+            "Kirsch, A.",
+            "Shwartz-Ziv, R.",
+        ),
+        truncated=False,
+        year=2024,
+        title="Turning up the heat: Min-p sampling for creative and coherent LLM outputs",
+        venue="International Conference on Learning Representations",
+        arxiv="2407.01082",
+        url="",
+    ),
+
+    # ---- Inference optimization (Chapter 15) --------------------------------
+    Reference(
+        key="dao2022",
+        authors=(
+            "Dao, T.",
+            "Fu, D. Y.",
+            "Ermon, S.",
+            "Rudra, A.",
+            "Ré, C.",
+        ),
+        truncated=False,
+        year=2022,
+        title=(
+            "FlashAttention: Fast and memory-efficient exact attention "
+            "with IO-awareness"
+        ),
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2205.14135",
+        url="",
+    ),
+
+    Reference(
+        key="dao2023",
+        authors=("Dao, T.",),
+        truncated=False,
+        year=2023,
+        title=(
+            "FlashAttention-2: Faster attention with better parallelism "
+            "and work partitioning"
+        ),
+        venue="arXiv preprint",
+        arxiv="2307.08691",
+        url="",
+    ),
+
+    Reference(
+        key="kwon2023",
+        authors=(
+            "Kwon, W.",
+            "Li, Z.",
+            "Zhuang, S.",
+            "Sheng, Y.",
+        ),
+        truncated=True,
+        year=2023,
+        title=(
+            "Efficient memory management for large language model serving "
+            "with PagedAttention"
+        ),
+        venue="ACM Symposium on Operating Systems Principles (SOSP)",
+        arxiv="2309.06180",
+        url="",
+    ),
+
+    Reference(
+        key="leviathan2023",
+        authors=("Leviathan, Y.", "Kalman, M.", "Matias, Y."),
+        truncated=False,
+        year=2023,
+        title="Fast inference from transformers via speculative decoding",
+        venue="International Conference on Machine Learning",
+        arxiv="2211.17192",
+        url="",
+    ),
+
+    Reference(
+        key="chen2023",
+        authors=(
+            "Chen, C.",
+            "Borgeaud, S.",
+            "Irving, G.",
+            "Lespiau, J.-B.",
+            "Sifre, L.",
+            "Jumper, J.",
+        ),
+        truncated=False,
+        year=2023,
+        title=(
+            "Accelerating large language model decoding with speculative sampling"
+        ),
+        venue="arXiv preprint",
+        arxiv="2302.01318",
+        url="",
+    ),
+
+    Reference(
+        key="cai2024",
+        authors=(
+            "Cai, T.",
+            "Li, Y.",
+            "Geng, Z.",
+            "Peng, H.",
+        ),
+        truncated=True,
+        year=2024,
+        title=(
+            "Medusa: Simple LLM inference acceleration framework "
+            "with multiple decoding heads"
+        ),
+        venue="International Conference on Machine Learning",
+        arxiv="2401.10774",
+        url="",
+    ),
+
+    # ---- Quantization (Chapter 16) ----------------------------------------
+    Reference(
+        key="dettmers2022",
+        authors=(
+            "Dettmers, T.",
+            "Lewis, M.",
+            "Belkada, Y.",
+            "Zettlemoyer, L.",
+        ),
+        truncated=False,
+        year=2022,
+        title="LLM.int8(): 8-bit matrix multiplication for transformers at scale",
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2208.07339",
+        url="",
+    ),
+
+    Reference(
+        key="frantar2023",
+        authors=(
+            "Frantar, E.",
+            "Ashkboos, S.",
+            "Hoefler, T.",
+            "Alistarh, D.",
+        ),
+        truncated=False,
+        year=2023,
+        title=(
+            "GPTQ: Accurate post-training quantization for generative "
+            "pre-trained transformers"
+        ),
+        venue="International Conference on Learning Representations",
+        arxiv="2210.17323",
+        url="",
+    ),
+
+    Reference(
+        key="xiao2023",
+        authors=(
+            "Xiao, G.",
+            "Lin, J.",
+            "Seznec, M.",
+            "Wu, H.",
+            "Demouth, J.",
+            "Han, S.",
+        ),
+        truncated=False,
+        year=2023,
+        title=(
+            "SmoothQuant: Accurate and efficient post-training quantization "
+            "for large language models"
+        ),
+        venue="International Conference on Machine Learning",
+        arxiv="2211.10438",
+        url="",
+    ),
+
+    Reference(
+        key="lin2024",
+        authors=(
+            "Lin, J.",
+            "Tang, J.",
+            "Tang, H.",
+            "Yang, S.",
+        ),
+        truncated=True,
+        year=2024,
+        title=(
+            "AWQ: Activation-aware weight quantization for LLM compression "
+            "and acceleration"
+        ),
+        venue="Proceedings of Machine Learning and Systems (MLSys)",
+        arxiv="2306.00978",
+        url="",
+    ),
+
+    # ---- Serving systems (Chapter 17) --------------------------------------
+    Reference(
+        key="yu2022",
+        authors=(
+            "Yu, G.-I.",
+            "Jeong, J. S.",
+            "Kim, G.-W.",
+            "Kim, S.",
+            "Chun, B.-G.",
+        ),
+        truncated=False,
+        year=2022,
+        title=(
+            "Orca: A distributed serving system for transformer-based "
+            "generative models"
+        ),
+        venue=(
+            "USENIX Symposium on Operating Systems Design and "
+            "Implementation (OSDI 22)"
+        ),
+        arxiv="",
+        url="https://www.usenix.org/conference/osdi22/presentation/yu",
+    ),
+
+    Reference(
+        key="zheng2024",
+        authors=(
+            "Zheng, L.",
+            "Yin, L.",
+            "Xie, Z.",
+            "Sun, C.",
+        ),
+        truncated=True,
+        year=2024,
+        title="SGLang: Efficient execution of structured language model programs",
+        venue="Advances in Neural Information Processing Systems",
+        arxiv="2312.07104",
+        url="",
+    ),
+
+    Reference(
+        key="agrawal2024",
+        authors=(
+            "Agrawal, A.",
+            "Kedia, N.",
+            "Panwar, A.",
+            "Mohan, J.",
+        ),
+        truncated=True,
+        year=2024,
+        title="Taming throughput-latency tradeoff in LLM inference with Sarathi-Serve",
+        venue=(
+            "USENIX Symposium on Operating Systems Design and "
+            "Implementation (OSDI 24)"
+        ),
+        arxiv="2403.02310",
+        url="",
+    ),
+
+    Reference(
+        key="zhong2024",
+        authors=(
+            "Zhong, Y.",
+            "Liu, S.",
+            "Chen, J.",
+            "Hu, J.",
+        ),
+        truncated=True,
+        year=2024,
+        title=(
+            "DistServe: Disaggregating prefill and decoding for "
+            "goodput-optimized large language model serving"
+        ),
+        venue=(
+            "USENIX Symposium on Operating Systems Design and "
+            "Implementation (OSDI 24)"
+        ),
+        arxiv="2401.09670",
+        url="",
+    ),
 )
 
 

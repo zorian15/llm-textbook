@@ -1897,6 +1897,667 @@ _QUIZZES: dict[str, tuple[Question, ...]] = {
             ),
         ),
     ),
+"decoding": (
+        Question(
+            prompt=(
+                "A summarization model decoded with beam search keeps emitting the "
+                "same clause over and over until truncated. What is the root cause?"
+            ),
+            options=(
+                "Beam search maximizes sequence probability, and the "
+                "maximum-probability continuation of open-ended text is itself "
+                "degenerate; fluent writing keeps choosing locally improbable tokens.",
+                "The beam width is set too small, so the search collapses onto a single "
+                "hypothesis and cannot escape the loop; widening the beam explores more "
+                "candidates and reliably breaks the repeated clause apart.",
+                "The model is under-trained, so its next-token distribution has not yet "
+                "sharpened, and the repetition reflects a genuine gap in its "
+                "language-modeling ability rather than a property of the decoder.",
+                "Beam search draws from the low-probability tail of the distribution, "
+                "and that tail happens to concentrate its mass on tokens the model has "
+                "already produced earlier in the sequence.",
+            ),
+            answer=0,
+            explanation=(
+                "Degeneration is a property of the decoding objective, not the model or "
+                "the beam width: maximizing likelihood chases the mode, and for "
+                "open-ended text the mode is a repetitive, over-safe string. Human text "
+                "carries a steady stream of surprisal, which is why sampling-based "
+                "decoders beat search here. Widening the beam typically makes it worse, "
+                "not better, because it finds even higher-probability (more degenerate) "
+                "sequences."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You raise the sampling temperature from 0.7 to 1.3 to make a factual "
+                "assistant 'more creative,' and answers get less accurate. Why?"
+            ),
+            options=(
+                "Temperature flattens the distribution, shifting mass onto the "
+                "runners-up, so the marginal tokens truncation meant to suppress get "
+                "sampled more.",
+                "Temperature reorders the tokens once it climbs above 1.0, so a token "
+                "that was previously unlikely can become the new argmax and then be "
+                "selected by the greedy step of the decoder.",
+                "Higher temperature increases the number of forward passes performed per "
+                "token, and the extra passes compound floating-point error in the logits "
+                "before the softmax is applied.",
+                "Temperature above 1.0 effectively disables top-p truncation, because "
+                "the flattened cumulative mass can no longer climb to the threshold that "
+                "the nucleus needs to close.",
+            ),
+            answer=0,
+            explanation=(
+                "Temperature is a monotonic rescaling of the logits: it never reorders "
+                "tokens, so the argmax (and greedy decoding) is unchanged, but it does "
+                "shift mass toward the tail. It is a diversity knob, not a correctness "
+                "knob. Truncation still runs, but now operates on a flatter "
+                "distribution that admits more marginal tokens."
+            ),
+        ),
+        Question(
+            prompt=(
+                "How does min-p sampling differ from top-p (nucleus) sampling in what "
+                "it keeps?"
+            ),
+            options=(
+                "Min-p keeps every token at least a fixed fraction of the top token's "
+                "probability, so its cutoff scales with the peak; top-p keeps the "
+                "smallest set reaching a fixed cumulative mass.",
+                "Min-p keeps a fixed minimum count of tokens no matter what their "
+                "probabilities are, while top-p keeps whatever number of tokens is "
+                "needed to reach a fixed cumulative probability mass from the top.",
+                "Min-p discards any token below an absolute probability floor chosen "
+                "before decoding begins, while top-p sets that same floor dynamically "
+                "from the running entropy of the current distribution.",
+                "Min-p keeps the tokens whose surprisal sits closest to the "
+                "distribution's entropy, whereas top-p simply keeps the most probable "
+                "tokens until their mass reaches the chosen threshold.",
+            ),
+            answer=0,
+            explanation=(
+                "Min-p's threshold is relative to the maximum probability, so a peaked "
+                "distribution admits few tokens and a flat one admits many — which "
+                "makes it hold up at high temperature where top-p can let a flattened "
+                "tail leak in. The 'surprisal near entropy' rule describes locally "
+                "typical sampling, a different method entirely."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A reasoning model that solves math problems performs best with "
+                "near-greedy decoding (temperature near 0), while a story generator "
+                "wants temperature around 1 with top-p. What principle reconciles this?"
+            ),
+            options=(
+                "Decoding is a per-task choice: reasoning wants the single most-likely "
+                "derivation, so diversity only adds chances to leave a correct path, "
+                "while open-ended writing needs the variance sampling supplies.",
+                "Reasoning models are calibrated differently during training, so their "
+                "logits already bake in an effective temperature, and any external "
+                "temperature you apply on top of that ends up double-counting it.",
+                "Greedy decoding is simply always optimal for accuracy; the story "
+                "generator only raises temperature because its outputs are never graded "
+                "for correctness and so nothing is lost by adding randomness.",
+                "Reasoning benefits from low temperature mainly because a shorter output "
+                "leaves fewer tokens for a repetition penalty to act on, so the risk of "
+                "falling into a degenerate loop is correspondingly lower.",
+            ),
+            answer=0,
+            explanation=(
+                "The same weights serve both tasks; only the decoder changes. When "
+                "there is a correct continuation to find (a derivation, code, an "
+                "extraction), you want the model's best guess and sampling mostly adds "
+                "risk. When many outputs are equally valid (prose), sampling supplies "
+                "the human-like variance that maximization destroys."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why does constrained decoding against a grammar guarantee valid output "
+                "where a well-tuned sampler only makes it likely?"
+            ),
+            options=(
+                "It sets the logits of every token the grammar forbids to negative "
+                "infinity before sampling, so an illegal token has zero probability and "
+                "cannot be drawn at any temperature.",
+                "It runs the ordinary sampler repeatedly and rejects any completion that "
+                "fails to parse against the grammar, retrying from the start until a "
+                "syntactically valid sample finally appears.",
+                "It fine-tunes the model on many examples of the target format ahead of "
+                "time, so that at inference the distribution's mass has concentrated "
+                "almost entirely onto the legal tokens.",
+                "It drops the temperature to zero on the constrained fields so that the "
+                "argmax is taken at every step, and the single most probable token is "
+                "always a grammar-legal one.",
+            ),
+            answer=0,
+            explanation=(
+                "Constrained decoding masks the distribution at each step, so only "
+                "grammar-legal tokens have nonzero probability — validity is enforced "
+                "by construction, not by chance or retries. The subtlety is that a hard "
+                "mask can distort intent: if the model wanted a forbidden token, you get "
+                "a valid output it would rate poorly, which is why constraint and "
+                "quality are separate concerns (Chapter 20)."
+            ),
+        ),
+    ),
+
+"inference-optimization": (
+        Question(
+            prompt=(
+                "A model generates at only a few tokens per second on a GPU whose "
+                "arithmetic units are nearly idle, yet the same GPU processes a long "
+                "prompt almost instantly. What explains the gap?"
+            ),
+            options=(
+                "Prefill runs the prompt through in parallel with high arithmetic "
+                "intensity, so it is compute-bound; decode produces one token per "
+                "pass with almost no math per byte, so it is memory-bandwidth-bound.",
+                "Prefill caches its intermediate results while decode recomputes "
+                "the entire attention matrix from scratch at every step, which is "
+                "what stalls generation.",
+                "Decode runs at a higher numerical precision than prefill to keep "
+                "sampling stable, and the wider arithmetic is what throttles the "
+                "token rate.",
+                "Prefill is dispatched to the GPU's dedicated tensor cores while "
+                "decode falls back to the slower general-purpose CUDA cores, so the "
+                "two phases run on entirely different hardware units with very "
+                "different peak throughput.",
+            ),
+            answer=0,
+            explanation=(
+                "The two phases have opposite arithmetic intensity. Prefill reuses "
+                "each weight across all prompt tokens at once, saturating the "
+                "arithmetic units; decode reads the whole model (and KV cache) to "
+                "emit a single token, so it is limited by how fast memory can be "
+                "read, not by FLOPs. This is why generation speed tracks memory "
+                "bandwidth divided by model size, and why the arithmetic units sit "
+                "idle during decode."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Why does serving a 128k-token context slow down every decode step, "
+                "not just the initial prefill?"
+            ),
+            options=(
+                "The rotary position embeddings must be recomputed across the entire "
+                "context at every step, and because that work grows with the sequence "
+                "length, each added token makes refreshing the earlier positions "
+                "steadily more expensive.",
+                "Longer contexts push the softmax toward saturation, so each step "
+                "needs extra iterations to keep the attention weights numerically "
+                "stable.",
+                "Each step streams the entire KV cache out of memory to attend over "
+                "it, and the cache grows linearly with context, so a bigger cache "
+                "means more bytes moved per token.",
+                "The context no longer fits in the GPU's SRAM, forcing every step "
+                "to page attention scores to disk and back before it can continue.",
+            ),
+            answer=2,
+            explanation=(
+                "Decode is memory-bandwidth-bound, and the KV cache is memory that "
+                "must be read on every step. Its size grows linearly with sequence "
+                "length (and batch), so long context raises the per-token byte count "
+                "for the whole generation, not once. The cache — not the weights — "
+                "is usually what caps context length and batch size, which is why "
+                "GQA, sliding windows, and MLA all target its size."
+            ),
+        ),
+        Question(
+            prompt=(
+                "PagedAttention is often summarized as 'virtual memory for the KV "
+                "cache.' What concrete problem does it actually solve?"
+            ),
+            options=(
+                "It compresses each cached key and value into fewer bits, so the "
+                "same context fits in a smaller memory footprint on every step.",
+                "It lets a sequence's KV cache live in non-contiguous fixed-size "
+                "blocks mapped through a table, eliminating the wasted memory of "
+                "reserving a contiguous max-length region per request.",
+                "It moves rarely-attended cache blocks out to CPU memory and pages "
+                "them back on demand, so the GPU holds only the active portion of "
+                "each context.",
+                "It reorders the tokens within each request so that attention reads "
+                "the cache in a single sequential sweep, converting the scattered "
+                "random-access pattern into a streaming read that the memory system "
+                "can prefetch far more efficiently.",
+            ),
+            answer=1,
+            explanation=(
+                "Static allocation reserves contiguous memory for each request's "
+                "worst-case length, most of which goes unused — severe internal "
+                "fragmentation that shrinks the batch. PagedAttention allocates "
+                "small blocks on demand and maps logical to physical blocks through "
+                "a per-sequence block table, so no request needs contiguous space "
+                "and shared prefixes can share blocks. The freed memory becomes a "
+                "larger batch, which is the throughput win — it does not compress or "
+                "swap the cache."
+            ),
+        ),
+        Question(
+            prompt=(
+                "In speculative decoding a small draft model proposes tokens that a "
+                "large target verifies. A candidate calls it 'an approximation that "
+                "trades a little quality for speed.' What is wrong with that?"
+            ),
+            options=(
+                "It is not an approximation: a modified rejection-sampling step "
+                "makes the output distribution identical to sampling from the "
+                "target alone, so the speedup comes purely from fewer target "
+                "forward passes.",
+                "It is not an approximation because the draft is distilled to match "
+                "the target's outputs exactly, so after enough training the two "
+                "models agree token for token and the correction step in the "
+                "algorithm never actually has to fire.",
+                "It is an approximation, but the error is bounded and small, so in "
+                "practice the quality loss is negligible for most prompts.",
+                "It is an approximation only when sampling at nonzero temperature; "
+                "under greedy decoding the draft and target are guaranteed to "
+                "produce the same tokens.",
+            ),
+            answer=0,
+            explanation=(
+                "Speculative decoding is exact. The acceptance test plus resampling "
+                "of the first rejected token provably reproduce the target's own "
+                "distribution, so the generated text is what the target would have "
+                "produced. The benefit is doing several tokens' worth of progress "
+                "per expensive target pass, since verifying k proposed tokens is a "
+                "parallel, prefill-like operation on a target that had spare compute."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You add speculative decoding with a strong, accurate draft model and "
+                "see almost no speedup. What is the most likely reason?"
+            ),
+            options=(
+                "The draft's high acceptance rate forces the target to re-verify "
+                "each accepted token a second time before committing it, and that "
+                "duplicated verification pass cancels out most of the tokens that "
+                "speculation was supposed to save.",
+                "The draft is accurate because it is large, so its per-token cost is "
+                "close to the target's and the verification pass no longer runs in "
+                "parallel with anything cheaper.",
+                "A strong draft raises the KV cache pressure so much that the batch "
+                "shrinks, and the smaller batch erases the gain from speculation.",
+                "Accurate drafts push the acceptance rate so high that the rejection "
+                "sampler rarely fires, and without rejections the target cannot "
+                "advance more than one token per pass.",
+            ),
+            answer=1,
+            explanation=(
+                "The speedup is roughly the expected accepted tokens per step "
+                "divided by the combined draft-plus-target cost. A draft strong "
+                "enough to be accurate is often nearly as expensive as the target, "
+                "so you pay almost a full model per proposed token and the arithmetic "
+                "stops favoring you. The sweet spot is a draft that is both cheap and "
+                "reasonably aligned — high acceptance is only half the equation."
+            ),
+        ),
+        Question(
+            prompt=(
+                "FlashAttention is frequently described as making attention 'cheaper.' "
+                "What does it actually reduce, and why is that the thing that matters?"
+            ),
+            options=(
+                "It lowers attention's asymptotic cost below the quadratic n-squared "
+                "by approximating far-apart interactions, which is what removes the "
+                "long-context bottleneck.",
+                "It halves the floating-point operations by fusing the query-key and "
+                "value multiplies into one kernel, so the arithmetic itself is what "
+                "gets smaller.",
+                "It reduces memory traffic by computing the exact attention in tiles "
+                "that stay in fast on-chip SRAM, never writing the n-by-n score "
+                "matrix to slow HBM — the FLOP count is unchanged.",
+                "It shrinks the KV cache by storing attention scores instead of keys "
+                "and values, so less data has to be streamed on each decode step.",
+            ),
+            answer=2,
+            explanation=(
+                "FlashAttention is exact and still O(n-squared) in compute; it does "
+                "the same (or slightly more) arithmetic. Standard attention is slow "
+                "because it materializes and re-reads the n-by-n score matrix in HBM, "
+                "and attention is memory-bound. Tiling Q, K, and V through SRAM with "
+                "an online softmax cuts that traffic, and recomputing tiles in the "
+                "backward pass avoids storing the matrix at all. The win is bytes "
+                "moved, not FLOPs — the same reason decode is slow in the first place."
+            ),
+        ),
+    ),
+
+"quantization": (
+        Question(
+            prompt=(
+                "Naive round-to-nearest quantization takes a large language model to "
+                "4 bits and its outputs turn to garbage, yet the same recipe barely "
+                "dents a vision CNN of similar size. What is the root cause specific "
+                "to the LLM?"
+            ),
+            options=(
+                "A few activation dimensions carry magnitudes far larger than the "
+                "rest, so any shared scale wide enough to cover them leaves ordinary "
+                "values with almost no resolution.",
+                "Language models pack many more parameters into each layer, so the "
+                "same fixed number of quantization rungs is spread over a wider "
+                "spread of weights and every rung ends up representing a coarser "
+                "step than it would in a smaller convolutional layer.",
+                "The output softmax runs over a vocabulary of tens of thousands of "
+                "tokens, and that layer is so numerically delicate that the tiny "
+                "rounding error introduced in the weights is amplified into "
+                "confidently wrong next-token predictions.",
+                "Transformer weights follow a much heavier-tailed distribution than "
+                "convolutional filters, so a uniformly spaced integer grid misplaces "
+                "the bulk of the weights no matter which scale and zero-point you "
+                "choose for the tensor.",
+            ),
+            answer=0,
+            explanation=(
+                "The culprit is emergent activation outliers (Dettmers et al., 2022): "
+                "past a few billion parameters, a small set of feature dimensions blow "
+                "up in magnitude, and a per-tensor scale stretched to represent them "
+                "leaves everything else with almost no resolution. The heavy-tailed "
+                "weights option is the tempting near-miss — weight shape does motivate "
+                "formats like NF4 — but it is not what breaks naive 4-bit; the "
+                "activation outliers are, which is why LLM.int8(), SmoothQuant, and AWQ "
+                "all target them."
+            ),
+        ),
+        Question(
+            prompt=(
+                "SmoothQuant and AWQ both fight activation outliers, but their "
+                "mechanisms differ. Which pair of descriptions is correct?"
+            ),
+            options=(
+                "SmoothQuant migrates outlier magnitude from the activations into "
+                "the weights with an equivalent per-channel rescale; AWQ scales up "
+                "the roughly 1% of weights that multiply large activations so they "
+                "round with less error.",
+                "SmoothQuant keeps the outlier dimensions in 16-bit while running the "
+                "rest in INT8; AWQ walks through the weight columns in order and uses "
+                "second-order Hessian information to correct the weights it has not "
+                "quantized yet.",
+                "SmoothQuant learns its quantization scales by backpropagation during "
+                "a short fine-tuning pass over calibration data; AWQ instead solves "
+                "for the scales analytically from activation statistics without doing "
+                "any gradient updates at all.",
+                "SmoothQuant reshapes the weight distribution to be approximately "
+                "Gaussian before rounding so a uniform grid fits it; AWQ clips the "
+                "top 1% of activation magnitudes so a narrower shared scale can cover "
+                "everything that remains.",
+            ),
+            answer=0,
+            explanation=(
+                "SmoothQuant (Xiao et al., 2023) applies a per-channel constant that "
+                "divides the hard-to-quantize activations and multiplies the "
+                "corresponding weight columns, an exactly equivalent rewrite that moves "
+                "the difficulty to the easy-to-quantize weights. AWQ (Lin et al., 2024) "
+                "identifies salient weights from activation statistics and scales them "
+                "to reduce their rounding error. The tempting scramble mixes up the "
+                "method names: the keep-outliers-in-16-bit trick is LLM.int8() and "
+                "the Hessian correction is GPTQ, neither of which is SmoothQuant or AWQ."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You quantize a 13B model weight-only to 4 bits and measure a large "
+                "speedup on decoding long responses, but almost none on processing "
+                "long prompts. Why?"
+            ),
+            options=(
+                "Prefill is compute-bound and still multiplies in 16-bit because "
+                "weight-only quantization dequantizes each weight first; decode is "
+                "memory-bandwidth-bound, so fewer bytes per weight speed it up "
+                "directly.",
+                "The prompt is processed one token at a time exactly as decoding is, "
+                "so both phases ought to speed up by the same factor; a flat prefill "
+                "number therefore points to a benchmarking mistake rather than "
+                "anything intrinsic to weight-only quantization.",
+                "Quantization only shrinks the weights, and prompt processing time is "
+                "dominated by building the KV cache rather than by the weight "
+                "matmuls, so compressing the weights leaves the prefill phase almost "
+                "entirely untouched no matter how few bits you use.",
+                "The custom 4-bit kernels are tuned only for batch size one, which "
+                "decoding uses, whereas prefill effectively batches every prompt "
+                "token together and falls back onto the slower general-purpose "
+                "16-bit code path for the matrix multiplies.",
+            ),
+            answer=0,
+            explanation=(
+                "Weight-only 4-bit stores weights in 4 bits but dequantizes them to "
+                "16-bit for the actual matmul, so it buys memory and decode bandwidth, "
+                "not arithmetic. Prefill is compute-bound and parallel, so it sees "
+                "little benefit; decode streams every weight from memory per token, so "
+                "halving the bytes roughly halves the time. To speed prefill you must "
+                "quantize activations too (W8A8) and run genuine integer matmuls — a "
+                "different, harder regime because of outliers."
+            ),
+        ),
+        Question(
+            prompt=(
+                "In a GGUF 'Q4_K_M' build for llama.cpp, what does the K-quant scheme "
+                "actually do, and why does it beat rounding every weight to a flat 4 "
+                "bits?"
+            ),
+            options=(
+                "It mixes precision within the model, spending more bits on the most "
+                "sensitive tensors and fewer on the rest, so the bit budget lands "
+                "where degradation hurts most.",
+                "It applies a short round of quantization-aware training to the "
+                "checkpoint so the weights can adapt to the coarse 4-bit grid before "
+                "the file is written, which a purely post-training round of the same "
+                "average width has no opportunity to do.",
+                "It stores the weights in a 4-bit floating-point type whose rungs are "
+                "spaced to match the roughly-Gaussian shape of the weights, putting "
+                "more levels where the weights cluster instead of on the uniform "
+                "integer grid a flat round would use.",
+                "It leaves the weights at a flat 4 bits but keeps the activations in "
+                "8-bit integers so the matrix multiplies execute in INT8, recovering "
+                "the compute speedup that a weight-only flat-4-bit scheme leaves "
+                "sitting on the table.",
+            ),
+            answer=0,
+            explanation=(
+                "K-quants use mixed precision across tensors — more bits for the "
+                "sensitive parts (such as attention projections), fewer elsewhere — so "
+                "the same average bit-width preserves more quality than a uniform round. "
+                "The Gaussian-spaced-rungs option describes NF4 (bitsandbytes/QLoRA), a "
+                "real but different idea, which makes it the tempting near-miss; and "
+                "K-quants are post-training, not QAT, and remain weight-only rather than "
+                "quantizing activations."
+            ),
+        ),
+        Question(
+            prompt=(
+                "An interviewer asks whether QLoRA is a form of quantization-aware "
+                "training. What is the accurate answer?"
+            ),
+            options=(
+                "No: QLoRA stores a frozen base in 4-bit only to save memory and "
+                "dequantizes each weight to 16-bit for its matmul, so the base is "
+                "never actually trained at 4 bits.",
+                "Yes: QLoRA rounds the base weights on the forward pass and lets the "
+                "gradient flow back through that rounding into the base weights "
+                "themselves, which is exactly the straight-through fake-quantization "
+                "mechanism that defines quantization-aware training.",
+                "Partly: the base does stay frozen, but the low-rank adapters are "
+                "themselves trained as fake-quantized 4-bit tensors, so QLoRA is "
+                "quantization-aware training applied to the adapters while the base "
+                "is simply held in reduced precision alongside them.",
+                "No, but for a different reason: QLoRA actually quantizes the "
+                "activations rather than the weights, making it a weight-and-"
+                "activation post-training method, whereas quantization-aware training "
+                "is defined by learning the weights at low precision.",
+            ),
+            answer=0,
+            explanation=(
+                "QLoRA (Dettmers et al., 2023) keeps 4-bit NF4 purely to fit the frozen "
+                "base in memory; every weight is dequantized to 16-bit for its multiply, "
+                "and all learning lives in 16-bit LoRA adapters that are themselves not "
+                "quantized. QAT, by contrast, trains the model to be accurate at "
+                "low-precision inference via fake quantization on the forward pass. The "
+                "trap is the claim that the LoRA adapters are themselves fake-quantized "
+                "4-bit tensors: they are trained in full precision, not at 4 bits."
+            ),
+        ),
+    ),
+
+"serving-systems": (
+        Question(
+            prompt=(
+                "Raising a replica's batch size lowers the cost of each generated "
+                "token but makes individual users wait longer per token. What is the "
+                "correct explanation of both effects at once?"
+            ),
+            options=(
+                "A GPU rents at a fixed hourly price, so cost per token is that price "
+                "over throughput; batching lifts throughput toward the compute-bound "
+                "ceiling, while each user now shares every decode step and waits "
+                "longer.",
+                "Bigger batches perform more arithmetic per token, and that is what "
+                "simultaneously raises throughput and raises each individual user's "
+                "latency; the cost falls only because the GPU's fixed startup overhead "
+                "is now amortized over a great deal more work.",
+                "Bigger batches shrink the KV cache that each request needs, which is "
+                "what lowers the cost, and latency rises because the shared cache must "
+                "then be paged out to slower host memory.",
+                "Bigger batches let later requests skip their prefill phase entirely, "
+                "which is what cuts the cost, and latency rises from the time each "
+                "request spends waiting for the batch to fill before it runs.",
+            ),
+            answer=0,
+            explanation=(
+                "Throughput, not per-request arithmetic, sets unit cost: the GPU rents "
+                "for the same price whether it emits ten tokens a second or three "
+                "thousand. Decode is memory-bandwidth-bound, so batching adds users "
+                "almost for free until the GPU turns compute-bound at the knee of the "
+                "curve, past which extra latency buys little throughput. This is why "
+                "'keep the batch full' is the whole cost story."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Continuous (iteration-level) batching is the core scheduling idea in "
+                "modern engines. Concretely, what does it change relative to static "
+                "batching?"
+            ),
+            options=(
+                "It fuses prefill and decode into one step so that no request ever "
+                "waits for a batch to assemble, which makes the classic fill-and-drain "
+                "pipeline bubble vanish from the schedule entirely, regardless of how "
+                "the request lengths differ.",
+                "It makes a scheduling decision every iteration, so a finished request "
+                "frees its slot at once and a waiting one joins on the next step, "
+                "rather than the batch idling until its slowest sequence ends.",
+                "It processes each request all the way to completion before admitting "
+                "the next, which is what bounds tail latency and guarantees strict "
+                "fairness across users.",
+                "It shares key-value heads across the requests that happen to be "
+                "batched together, shrinking the KV cache so more sequences fit in "
+                "memory at once.",
+            ),
+            answer=1,
+            explanation=(
+                "Orca's insight was to schedule at the granularity of a single decode "
+                "iteration rather than a whole request. Because requests in a batch "
+                "have different lengths, a static batch leaves finished slots idle "
+                "until the longest one drains; iteration-level scheduling refills them "
+                "at once. The KV-cache-sharing option describes grouped-query "
+                "attention, an unrelated lever."
+            ),
+        ),
+        Question(
+            prompt=(
+                "A workload sends the same 2,000-token system prompt with every "
+                "request. With prefix caching enabled, why does that shared prompt "
+                "become nearly free after the first request?"
+            ),
+            options=(
+                "The scheduler groups every request that carries that identical system "
+                "prompt into a single batch, so the shared prompt is prefilled just "
+                "one time for that batch and its cost is amortized across all of the "
+                "batch's members.",
+                "The engine caches the final-layer logits that the system prompt "
+                "produces and then skips re-decoding those positions for each of the "
+                "later requests.",
+                "The system prompt's tokens are quantized to fewer bits than the "
+                "user's tokens, so the shared portion streams out of memory faster on "
+                "every single request.",
+                "Its KV cache is computed once during the first request's prefill and "
+                "reused by every later request sharing the prefix, so they pay only to "
+                "prefill their own suffix.",
+            ),
+            answer=3,
+            explanation=(
+                "Prefix caching (SGLang's RadixAttention organizes it as a tree) keys "
+                "on the shared token prefix and reuses its stored KV entries across "
+                "requests that arrive at different times, not just within one batch. "
+                "The per-batch option is the tempting near-miss: it captures reuse but "
+                "misses that the cache persists across time, which is where most of "
+                "the saving comes from."
+            ),
+        ),
+        Question(
+            prompt=(
+                "Some serving stacks split prefill and decode onto separate GPU pools "
+                "(disaggregation), or interleave chunked prefills with decodes on one "
+                "pool. What problem are both attacking?"
+            ),
+            options=(
+                "Prefill is compute-bound and decode is memory-bandwidth-bound, so "
+                "running them together lets a long prefill stall the decodes in its "
+                "batch and spike inter-token latency.",
+                "Prefill and decode run at different numerical precisions, so "
+                "separating them avoids the conversion overhead of switching number "
+                "formats in the middle of a request.",
+                "Decode needs the full KV cache while prefill needs none of it, so "
+                "keeping the two phases apart roughly halves the memory that any one "
+                "replica must hold.",
+                "Prefill is stateless while decode is stateful, so only decode can be "
+                "safely batched at all, and separating the two phases lets prefill run "
+                "entirely without a scheduler managing it.",
+            ),
+            answer=0,
+            explanation=(
+                "The two phases have opposite bottlenecks, so co-locating them makes "
+                "each degrade the other: one big prefill step blocks every decode in "
+                "the batch, wrecking TPOT. Chunked prefill (Sarathi-Serve) slices the "
+                "prefill and interleaves it; disaggregation (DistServe) routes the "
+                "phases to pools tuned for compute versus bandwidth. Both target "
+                "interference, not precision or raw memory."
+            ),
+        ),
+        Question(
+            prompt=(
+                "You are choosing a serving engine. Which situation most specifically "
+                "favors SGLang over the alternatives?"
+            ),
+            options=(
+                "You need the absolute peak throughput achievable on NVIDIA GPUs and "
+                "can afford to pay an ahead-of-time kernel compilation step for each "
+                "model you deploy.",
+                "You swap base models frequently and mainly want mature streaming, "
+                "request metrics, and safe-rollout tooling that lives inside the "
+                "Hugging Face serving ecosystem.",
+                "Your traffic is full of long shared prefixes — a big system prompt, "
+                "few-shot preambles, a common document — so automatic prefix reuse is "
+                "the dominant win.",
+                "Your KV cache no longer fits in contiguous memory and you need paged "
+                "allocation to stop fragmentation from wasting VRAM.",
+            ),
+            answer=2,
+            explanation=(
+                "SGLang's signature is RadixAttention, which reuses overlapping "
+                "prompt prefixes automatically, so it shines when prefixes are long "
+                "and widely shared. The peak-throughput-via-compilation case points to "
+                "TensorRT-LLM, the ecosystem case to TGI, and paged memory is now "
+                "table stakes everywhere (it originated in vLLM's PagedAttention), so "
+                "it no longer distinguishes one engine."
+            ),
+        ),
+    ),
 }
 
 

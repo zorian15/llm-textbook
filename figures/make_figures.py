@@ -15,6 +15,8 @@ can assert that the manifest and the filesystem agree.
 
 from __future__ import annotations
 
+import math
+import random
 from pathlib import Path
 
 import matplotlib
@@ -5054,6 +5056,1622 @@ def fig_adapter_serving() -> Path:
     )
 
 
+
+# ---------------------------------------------------------------------------
+# Chapter figures: decoding.
+# ---------------------------------------------------------------------------
+def _softmax(logits: list[float], temperature: float = 1.0) -> list[float]:
+    """Return the softmax of `logits`, optionally divided by a temperature."""
+    assert temperature > 0, "Temperature must be positive."
+    scaled = [x / temperature for x in logits]
+    m = max(scaled)
+    exps = [math.exp(x - m) for x in scaled]
+    z = sum(exps)
+    return [e / z for e in exps]
+
+
+def fig_beam_degeneration() -> Path:
+    """Plot: per-token probability of human text versus beam-search text."""
+    style_plot()
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+    rng = random.Random(7)
+    n = 48
+    positions = list(range(n))
+
+    # Human text: wide variance, a steady stream of low-probability surprises.
+    human = []
+    for i in positions:
+        base = 0.5 + 0.28 * math.sin(i / 3.2)
+        val = base + rng.uniform(-0.42, 0.34)
+        human.append(min(0.97, max(0.02, val)))
+
+    # Beam/greedy text: pinned near certainty and climbing into a loop.
+    beam = []
+    for i in positions:
+        val = 0.87 + 0.11 * (i / n) + rng.uniform(-0.02, 0.02)
+        beam.append(min(0.996, val))
+
+    ax.plot(
+        positions,
+        human,
+        color=ACCENT,
+        linewidth=1.8,
+        marker="o",
+        markersize=2.6,
+        label="human-written text",
+    )
+    ax.plot(
+        positions,
+        beam,
+        color=BRICK,
+        linewidth=2.0,
+        label="beam search (maximizing)",
+    )
+
+    ax.annotate(
+        "locally surprising,\nyet fluent",
+        xy=(positions[9], human[9]),
+        xytext=(3, 0.10),
+        fontsize=8,
+        color=ACCENT,
+        arrowprops={"arrowstyle": "-", "color": ACCENT, "linewidth": 0.8},
+    )
+    ax.annotate(
+        "pinned near 1.0:\nthe repetition loop",
+        xy=(38, beam[38]),
+        xytext=(20, 0.60),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    ax.set_xlabel("token position")
+    ax.set_ylabel("probability the model assigns the chosen token")
+    ax.set_title(
+        "Fluent text keeps surprising the model; degenerate text never does", loc="left"
+    )
+    ax.set_ylim(0, 1.05)
+    ax.set_xlim(0, n - 1)
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    ax.legend(loc="lower center", ncol=2)
+    return save_plot(fig, "beam-degeneration.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 14.2 — temperature, top-k, and top-p reshape one distribution.
+# ---------------------------------------------------------------------------
+
+
+def fig_sampling_knobs() -> Path:
+    """Plot: the same next-token distribution under four decoding knobs."""
+    style_plot()
+    fig, axes = plt.subplots(2, 2, figsize=(7.4, 4.7))
+
+    logits = [3.4, 2.6, 2.1, 1.8, 1.2, 0.8, 0.3, -0.2, -0.7, -1.4]
+    labels = [
+        "mat",
+        "rug",
+        "sofa",
+        "floor",
+        "chair",
+        "bed",
+        "roof",
+        "desk",
+        "step",
+        "edge",
+    ]
+    xs = list(range(len(logits)))
+    base = _softmax(logits)
+
+    def draw(ax, probs, kept, title):
+        colors = [ACCENT if k else RULE_STRONG for k in kept]
+        alphas = [1.0 if k else 0.55 for k in kept]
+        for x, p, c, a in zip(xs, probs, colors, alphas):
+            ax.bar(x, p, color=c, alpha=a, width=0.72, edgecolor="none")
+        ax.set_title(title, loc="left", fontsize=9)
+        ax.set_ylim(0, 0.82)
+        ax.set_xticks(xs)
+        ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=6)
+        ax.set_yticks([])
+        for spine in ("left", "top", "right"):
+            ax.spines[spine].set_visible(False)
+
+    all_kept = [True] * len(logits)
+
+    # Raw distribution at temperature 1.
+    draw(axes[0][0], base, all_kept, "raw distribution (T = 1)")
+
+    # Low temperature: sharpened toward the peak, no tokens removed.
+    low_t = _softmax(logits, temperature=0.6)
+    draw(axes[0][1], low_t, all_kept, "low temperature (T = 0.6): sharpen")
+
+    # Top-k = 3: keep the three most probable, renormalize the rest to zero.
+    k = 3
+    top_k_kept = [i < k for i in xs]  # Logits are already in descending order.
+    z_k = sum(p for p, keep in zip(base, top_k_kept) if keep)
+    top_k = [p / z_k if keep else 0.0 for p, keep in zip(base, top_k_kept)]
+    draw(axes[1][0], top_k, top_k_kept, "top-k = 3: keep a fixed count")
+
+    # Top-p = 0.9: keep the smallest prefix whose mass reaches p, renormalize.
+    p_target = 0.9
+    cumulative = 0.0
+    top_p_kept = []
+    for p in base:
+        take = cumulative < p_target
+        top_p_kept.append(take)
+        if take:
+            cumulative += p
+    z_p = sum(p for p, keep in zip(base, top_p_kept) if keep)
+    top_p = [p / z_p if keep else 0.0 for p, keep in zip(base, top_p_kept)]
+    draw(axes[1][1], top_p, top_p_kept, "top-p = 0.9: keep a fixed mass")
+
+    fig.suptitle(
+        "The same distribution, reshaped four ways before you sample from it",
+        x=0.02,
+        y=1.02,
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+        color=INK,
+    )
+    fig.tight_layout()
+    return save_plot(fig, "sampling-knobs.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 14.3 — min-p scales its cutoff to the model's confidence.
+# ---------------------------------------------------------------------------
+
+
+def fig_min_p() -> Path:
+    """Plot: the min-p threshold on a confident versus an uncertain distribution."""
+    style_plot()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.4, 3.5))
+
+    p_min = 0.1  # Keep tokens at least this fraction of the top token's probability.
+    confident = _softmax([4.6, 1.6, 1.1, 0.6, 0.2, -0.4, -0.9, -1.6])
+    uncertain = _softmax([1.2, 1.05, 0.95, 0.85, 0.7, 0.55, 0.4, 0.2])
+
+    for ax, probs, title in (
+        (ax1, confident, "confident model (peaked)"),
+        (ax2, uncertain, "uncertain model (flat)"),
+    ):
+        threshold = p_min * max(probs)
+        xs = list(range(len(probs)))
+        for x, p in zip(xs, probs):
+            kept = p >= threshold
+            ax.bar(
+                x,
+                p,
+                color=ACCENT if kept else RULE_STRONG,
+                alpha=1.0 if kept else 0.55,
+                width=0.72,
+                edgecolor="none",
+            )
+        ax.axhline(threshold, color=AMBER, linewidth=1.4, linestyle=(0, (4, 3)))
+        ax.text(
+            len(probs) - 0.5,
+            threshold + 0.012,
+            "min-p cutoff",
+            fontsize=7.5,
+            color=AMBER,
+            ha="right",
+        )
+        ax.set_title(title, loc="left", fontsize=9)
+        ax.set_ylim(0, max(max(confident), max(uncertain)) * 1.12)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ("left", "top", "right"):
+            ax.spines[spine].set_visible(False)
+
+    fig.suptitle(
+        "min-p's threshold is a fraction of the peak, so it tracks confidence",
+        x=0.02,
+        y=1.03,
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+        color=INK,
+    )
+    fig.tight_layout()
+    return save_plot(fig, "min-p-vs-top-p.svg")
+
+
+# ---------------------------------------------------------------------------
+# Figure 14.4 — constrained decoding masks the illegal tokens.
+# ---------------------------------------------------------------------------
+
+
+def fig_constrained_decoding() -> Path:
+    """Diagram: a schema gate masks illegal tokens, then the rest renormalize."""
+    width, height = 660, 320
+    body: list[str] = [
+        eyebrow(24, 30, "WHAT THE MODEL WANTS"),
+        eyebrow(486, 30, "WHAT IT MAY SAY"),
+    ]
+
+    # The context that sets the constraint.
+    body.append(
+        f'<text x="24" y="54" font-size="12" fill="{INK_SOFT}">context: '
+        f'<tspan font-family="{MONO}" fill="{INK}">{{"is_capital":</tspan></text>'
+    )
+
+    # Candidates the model would sample, and whether the schema permits them.
+    candidates = [
+        ("Paris", 0.34, False),
+        ("true", 0.20, True),
+        ('"yes"', 0.16, False),
+        ("42", 0.16, False),
+        ("false", 0.14, True),
+    ]
+    allowed_mass = sum(p for _, p, ok in candidates if ok)
+
+    row_y0, row_h = 82, 44
+    left_bar_x, bar_max = 96, 150
+    right_bar_x = 486
+
+    for i, (tok, p, ok) in enumerate(candidates):
+        y = row_y0 + i * row_h
+        cy = y + 14
+
+        # Left: the raw probability the model assigns this token.
+        body.append(
+            f'<text x="88" y="{cy + 4}" font-size="11.5" text-anchor="end" '
+            f'fill="{INK if ok else MUTED}">{tok}</text>'
+        )
+        body.append(
+            f'<rect x="{left_bar_x}" y="{y + 4}" width="{bar_max * p:.1f}" height="18" '
+            f'rx="3" fill="{ACCENT if ok else RULE_STRONG}" '
+            f'opacity="{1.0 if ok else 0.55}"/>'
+        )
+        body.append(
+            f'<text x="{left_bar_x + bar_max * p + 6:.1f}" y="{cy + 4}" font-size="9.5" '
+            f'fill="{MUTED}" font-variant="tabular-nums">{p:.2f}</text>'
+        )
+
+        gate_x = 322
+        if ok:
+            # Allowed: the logit survives and flows to a renormalized bar.
+            renorm = p / allowed_mass
+            body.append(
+                f'<path d="M {left_bar_x + bar_max * 0.30:.1f} {cy} L {gate_x - 6} {cy}" '
+                f'stroke="{ACCENT}" stroke-width="1.4" marker-end="url(#c1)"/>'
+            )
+            body.append(
+                f'<path d="M {gate_x + 62} {cy} L {right_bar_x - 6} {cy}" '
+                f'stroke="{ACCENT}" stroke-width="1.4" marker-end="url(#c1)"/>'
+            )
+            body.append(
+                f'<rect x="{right_bar_x}" y="{y + 4}" width="{bar_max * renorm:.1f}" '
+                f'height="18" rx="3" fill="{ACCENT}"/>'
+            )
+            body.append(
+                f'<text x="{right_bar_x + bar_max * renorm + 6:.1f}" y="{cy + 4}" '
+                f'font-size="9.5" fill="{MUTED}" font-variant="tabular-nums">'
+                f"{renorm:.2f}</text>"
+            )
+        else:
+            # Forbidden: the logit is driven to negative infinity at the gate.
+            body.append(
+                f'<path d="M {left_bar_x + bar_max * 0.30:.1f} {cy} L {gate_x - 6} {cy}" '
+                f'stroke="{RULE_STRONG}" stroke-width="1.2" stroke-dasharray="4 3"/>'
+            )
+            body.append(
+                f'<text x="{gate_x + 12}" y="{cy + 5}" font-size="15" '
+                f'fill="{BRICK}" font-weight="700">&#215;</text>'
+            )
+
+    # The schema gate itself, spanning the rows.
+    gate_x, gate_w = 300, 60
+    gate_top, gate_bot = row_y0 - 2, row_y0 + len(candidates) * row_h - 14
+    body.append(
+        f'<rect x="{gate_x}" y="{gate_top}" width="{gate_w}" height="{gate_bot - gate_top}" '
+        f'rx="8" fill="{ACCENT_SOFT}" stroke="{ACCENT}"/>'
+    )
+    mid = (gate_top + gate_bot) / 2
+    body.append(
+        f'<text x="{gate_x + gate_w / 2}" y="{mid - 6}" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}" font-weight="700">JSON</text>'
+    )
+    body.append(
+        f'<text x="{gate_x + gate_w / 2}" y="{mid + 8}" font-size="10.5" '
+        f'text-anchor="middle" fill="{ACCENT}" font-weight="700">Schema</text>'
+    )
+    body.append(
+        f'<text x="{gate_x + gate_w / 2}" y="{mid + 24}" font-size="9" '
+        f'text-anchor="middle" fill="{MUTED}">boolean</text>'
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Illegal tokens go to &#8722;&#8734; before '
+        f"sampling, so the output is valid by construction, not by luck.</text>"
+    )
+    body.append(arrow_marker(ACCENT, "c1"))
+    return write_svg(
+        "constrained-decoding.svg",
+        svg_doc(width, height, "constrained decoding masks illegal tokens", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: inference-optimization.
+# ---------------------------------------------------------------------------
+def fig_prefill_decode_roofline() -> Path:  # noqa: F405
+    """Plot: a roofline placing prefill on the compute roof and decode on the ramp."""
+    style_plot()  # noqa: F405
+    fig, ax = plt.subplots(figsize=(7.0, 3.7))  # noqa: F405
+
+    peak = 1000.0  # Arbitrary compute ceiling (attainable FLOP/s).
+    bw = 5.0  # Slope of the memory-bandwidth roof (FLOP/s per FLOP/byte).
+    ridge = peak / bw  # Arithmetic intensity where the two roofs meet.
+
+    intensity = [10 ** (i * 0.02) for i in range(201)]  # 1 .. 1e4.
+    roof = [min(bw * x, peak) for x in intensity]
+    ax.plot(intensity, roof, color=INK, linewidth=2.0)  # noqa: F405
+
+    # Shade the memory-bound region under the diagonal part of the roof.
+    ramp_x = [x for x in intensity if x <= ridge]
+    ax.fill_between(
+        ramp_x,
+        [bw * x for x in ramp_x],
+        color=BRICK,  # noqa: F405
+        alpha=0.06,
+    )
+
+    # Decode: tiny arithmetic intensity, pinned to the memory ramp.
+    decode_i = 1.6
+    decode_y = bw * decode_i
+    ax.scatter([decode_i], [decode_y], s=48, color=BRICK, zorder=5)  # noqa: F405
+    ax.annotate(
+        "decode\none token per pass:\nmemory-bandwidth bound",
+        xy=(decode_i, decode_y),
+        xytext=(2.0, 40),
+        fontsize=8,
+        color=BRICK,  # noqa: F405
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},  # noqa: F405
+    )
+
+    # Prefill: high intensity, riding the compute ceiling.
+    prefill_i = 900.0
+    ax.scatter([prefill_i], [peak], s=48, color=ACCENT, zorder=5)  # noqa: F405
+    ax.annotate(
+        "prefill\nwhole prompt in parallel:\ncompute bound",
+        xy=(prefill_i, peak),
+        xytext=(70, 320),
+        fontsize=8,
+        color=ACCENT,  # noqa: F405
+        arrowprops={"arrowstyle": "-", "color": ACCENT, "linewidth": 0.8},  # noqa: F405
+    )
+
+    ax.axvline(ridge, color=MUTED, linewidth=0.9, linestyle=(0, (4, 3)))  # noqa: F405
+    ax.text(ridge * 1.1, 12, "ridge point", fontsize=7.5, color=MUTED, rotation=90)  # noqa: F405
+    ax.text(
+        6,
+        3.2,
+        "arithmetic units idle,\nwaiting on memory",
+        fontsize=7.5,
+        color=BRICK,  # noqa: F405
+    )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("arithmetic intensity (FLOPs per byte read, log scale)")
+    ax.set_ylabel("attainable throughput (FLOP/s, log scale)")
+    ax.set_title(
+        "Same weights, two regimes: prefill on the compute roof, decode on the ramp",
+        loc="left",
+    )
+    ax.set_xlim(1, 1e4)
+    ax.set_ylim(1, 2000)
+    ax.grid(alpha=0.4, which="major")
+    ax.set_axisbelow(True)
+    return save_plot(fig, "prefill-decode-roofline.svg")  # noqa: F405
+
+
+# ---------------------------------------------------------------------------
+# Figure 15.2 — the KV cache grows linearly and overtakes the weights.
+# ---------------------------------------------------------------------------
+
+
+def fig_kv_cache_growth() -> Path:  # noqa: F405
+    """Plot: KV cache size vs sequence length for MHA vs GQA, against the weights."""
+    style_plot()  # noqa: F405
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))  # noqa: F405
+
+    # A Llama-3-8B-class model: 32 layers, head dim 128, bf16 (2 bytes).
+    layers, head_dim, dtype_bytes = 32, 128, 2
+
+    def per_token_gb(n_kv_heads: int) -> float:
+        # 2 for keys and values; result in gigabytes per token per sequence.
+        return 2 * layers * n_kv_heads * head_dim * dtype_bytes / 1e9
+
+    seq = [i * 2048 for i in range(0, 65)]  # 0 .. 128k tokens.
+    mha = [per_token_gb(32) * n for n in seq]  # Full multi-head: 32 KV heads.
+    gqa = [per_token_gb(8) * n for n in seq]  # Grouped-query: 8 KV heads.
+
+    ax.plot(seq, mha, color=BRICK, linewidth=2.0, label="full MHA (32 KV heads)")  # noqa: F405
+    ax.plot(seq, gqa, color=ACCENT, linewidth=2.0, label="GQA (8 KV heads)")  # noqa: F405
+
+    # The model's own weights, for scale: 8B params at bf16 = 16 GB.
+    weights_gb = 16.0
+    ax.axhline(weights_gb, color=MUTED, linewidth=1.0, linestyle=(0, (4, 3)))  # noqa: F405
+    ax.text(
+        3000,
+        weights_gb + 1.5,
+        "the model's own weights (8B, bf16)",
+        fontsize=7.5,
+        color=MUTED,  # noqa: F405
+    )
+
+    # Mark the 128k-context endpoints so the 4x gap is legible.
+    ax.annotate(
+        f"{mha[-1]:.0f} GB at 128k",
+        xy=(seq[-1], mha[-1]),
+        xytext=(72000, mha[-1] - 6),
+        fontsize=8,
+        color=BRICK,  # noqa: F405
+        ha="right",
+    )
+    ax.annotate(
+        f"{gqa[-1]:.0f} GB",
+        xy=(seq[-1], gqa[-1]),
+        xytext=(96000, gqa[-1] + 6),
+        fontsize=8,
+        color=ACCENT,  # noqa: F405
+    )
+    ax.text(
+        38000,
+        30,
+        "and batch size multiplies all of this",
+        fontsize=8,
+        color=INK_SOFT,  # noqa: F405
+        fontstyle="italic",
+    )
+
+    ax.set_xlabel("sequence length (tokens)")
+    ax.set_ylabel("KV cache per sequence (GB)")
+    ax.set_title("The cache grows linearly and overtakes the weights", loc="left")
+    ax.set_xlim(0, seq[-1])
+    ax.set_ylim(0, 70)
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda v, _: f"{v / 1000:g}k" if v else "0")  # noqa: F405
+    )
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    ax.legend(loc="upper left")
+    return save_plot(fig, "kv-cache-growth.svg")  # noqa: F405
+
+
+# ---------------------------------------------------------------------------
+# Figure 15.3 — PagedAttention: KV memory managed like OS virtual memory.
+# ---------------------------------------------------------------------------
+
+
+def fig_paged_attention() -> Path:  # noqa: F405
+    """Diagram: contiguous over-reservation versus paged blocks with a block table."""
+    width, height = 680, 348
+    body: list[str] = []
+
+    cw, ch = 20, 20  # A single KV-slot cell.
+    gap = 3
+
+    # --- Top: static contiguous allocation, mostly wasted. ---
+    body.append(eyebrow(24, 26, "STATIC: RESERVE EACH REQUEST'S MAX LENGTH"))  # noqa: F405
+    rows = [("req A", 5, ACCENT), ("req B", 3, VIOLET)]  # noqa: F405
+    slots = 16
+    top0 = 42
+    for r, (label, used, color) in enumerate(rows):
+        y = top0 + r * (ch + 12)
+        body.append(
+            f'<text x="24" y="{y + ch / 2 + 4}" font-size="11" fill="{INK_SOFT}">{label}</text>'  # noqa: F405
+        )
+        x0 = 84
+        for i in range(slots):
+            x = x0 + i * (cw + gap)
+            if i < used:
+                body.append(
+                    f'<rect x="{x}" y="{y}" width="{cw}" height="{ch}" rx="3" '
+                    f'fill="{color}" opacity="0.9"/>'
+                )
+            else:
+                body.append(
+                    f'<rect x="{x}" y="{y}" width="{cw}" height="{ch}" rx="3" '
+                    f'fill="#f0efe9" stroke="{RULE}"/>'  # noqa: F405
+                )
+    waste_x = 84 + 5 * (cw + gap)
+    body.append(
+        f'<text x="{waste_x + 90}" y="{top0 + ch + 44}" font-size="10" text-anchor="middle" '
+        f'fill="{BRICK}">reserved but never used (internal fragmentation)</text>'  # noqa: F405
+    )
+    body.append(
+        f'<path d="M {waste_x} {top0 + ch + 34} L {84 + slots * (cw + gap) - gap} '
+        f'{top0 + ch + 34}" stroke="{BRICK}" stroke-width="1" opacity="0.6"/>'  # noqa: F405
+    )
+
+    # --- Bottom: paged allocation into a shared physical pool. ---
+    base = 168
+    body.append(eyebrow(24, base, "PAGED: BLOCKS ON DEMAND, MAPPED THROUGH A TABLE"))  # noqa: F405
+
+    # Logical view for each request (a short column of blocks).
+    body.append(
+        f'<text x="24" y="{base + 26}" font-size="10" fill="{MUTED}">logical blocks</text>'  # noqa: F405
+    )
+    logical = [("A", 3, ACCENT, base + 36), ("B", 2, VIOLET, base + 118)]  # noqa: F405
+    bw_, bh_ = 46, 22
+    for name, count, color, ly in logical:
+        for i in range(count):
+            y = ly + i * (bh_ + 5)
+            body += token_box(  # noqa: F405
+                40, y, bw_, bh_, f"{name}{i}", fill=color, stroke="none",
+                text_fill="#ffffff", font_size=10, weight=700,
+            )
+
+    # Physical pool: a 4x4 grid of blocks, some owned by A/B, scattered.
+    body.append(
+        f'<text x="416" y="{base + 26}" font-size="10" fill="{MUTED}">physical KV block pool</text>'  # noqa: F405
+    )
+    owners = {  # Grid index -> (label, color); scattered on purpose.
+        1: ("A0", ACCENT),  # noqa: F405
+        2: ("B0", VIOLET),  # noqa: F405
+        4: ("A1", ACCENT),  # noqa: F405
+        9: ("B1", VIOLET),  # noqa: F405
+        11: ("A2", ACCENT),  # noqa: F405
+    }
+    px0, py0 = 416, base + 36
+    pbw, pbh = 52, 26
+    pgap = 8
+    for idx in range(16):
+        gx = idx % 4
+        gy = idx // 4
+        x = px0 + gx * (pbw + pgap)
+        y = py0 + gy * (pbh + pgap)
+        if idx in owners:
+            lab, color = owners[idx]
+            body += token_box(  # noqa: F405
+                x, y, pbw, pbh, lab, fill=color, stroke="none",
+                text_fill="#ffffff", font_size=10, weight=700,
+            )
+        else:
+            body += token_box(  # noqa: F405
+                x, y, pbw, pbh, "free", fill="#ffffff", stroke=RULE,  # noqa: F405
+                text_fill=MUTED, font_size=9,  # noqa: F405
+            )
+
+    # Block-table arrows from logical blocks into their physical homes.
+    for name, count, color, ly in logical:
+        for i in range(count):
+            phys_idx = next(k for k, (lab, _) in owners.items() if lab == f"{name}{i}")
+            gx, gy = phys_idx % 4, phys_idx // 4
+            tx = px0 + gx * (pbw + pgap)
+            ty = py0 + gy * (pbh + pgap) + pbh / 2
+            sy = ly + i * (bh_ + 5) + bh_ / 2
+            body.append(
+                f'<path d="M {40 + bw_} {sy} C 300 {sy}, 340 {ty}, {tx - 3} {ty}" '
+                f'fill="none" stroke="{color}" stroke-width="1.2" opacity="0.55" '
+                f'marker-end="url(#pg)"/>'
+            )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">No request needs contiguous memory, so the '  # noqa: F405
+        f"freed space becomes a bigger batch.</text>"
+    )
+    body.append(arrow_marker(ACCENT, "pg"))  # noqa: F405
+    return write_svg(  # noqa: F405
+        "paged-attention.svg",
+        svg_doc(width, height, "paged KV cache versus contiguous reservation", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 15.4 — speculative decoding: draft proposes, target verifies in parallel.
+# ---------------------------------------------------------------------------
+
+
+def fig_speculative_decoding() -> Path:  # noqa: F405
+    """Diagram: a draft's proposed run verified in one target pass, prefix accepted."""
+    width, height = 680, 306
+    body: list[str] = [eyebrow(24, 28, "ONE VERIFICATION PASS ADVANCES SEVERAL TOKENS")]  # noqa: F405
+
+    proposed = ["the", "cat", "sat", "on"]
+    verdict = [True, True, True, False]  # First miss is corrected.
+    correction = "under"
+    cw, chh, cgap = 96, 34, 14
+    x0 = 150
+
+    # Draft model box.
+    dy = 58
+    body += token_box(  # noqa: F405
+        24, dy, 104, chh, "draft model", fill=ACCENT_SOFT, stroke=ACCENT,  # noqa: F405
+        text_fill=ACCENT, font_size=11, weight=600,  # noqa: F405
+    )
+    body.append(
+        f'<text x="76" y="{dy - 8}" font-size="10" text-anchor="middle" fill="{MUTED}">'  # noqa: F405
+        f"cheap, fast</text>"
+    )
+    for i, tok in enumerate(proposed):
+        x = x0 + i * (cw + cgap)
+        body += token_box(x, dy, cw, chh, tok, fill="#ffffff", text_fill=INK_SOFT)  # noqa: F405
+        if i == 0:
+            body.append(
+                f'<path d="M 132 {dy + chh / 2} L {x - 4} {dy + chh / 2}" '
+                f'stroke="{RULE_STRONG}" stroke-width="1.4" marker-end="url(#sp)"/>'  # noqa: F405
+            )
+    body.append(
+        f'<text x="{x0 + 2 * (cw + cgap)}" y="{dy - 8}" font-size="10" text-anchor="middle" '
+        f'fill="{MUTED}">4 proposed tokens</text>'  # noqa: F405
+    )
+
+    # Target model box, spanning all four columns (one parallel pass).
+    ty = 138
+    span = 4 * (cw + cgap) - cgap
+    body += token_box(  # noqa: F405
+        24, ty, 104, chh, "target model", fill=ACCENT, stroke="none",  # noqa: F405
+        text_fill="#ffffff", font_size=11, weight=700,
+    )
+    body.append(
+        f'<rect x="{x0}" y="{ty - 4}" width="{span}" height="{chh + 8}" rx="8" '
+        f'fill="none" stroke="{ACCENT}" stroke-dasharray="5 4"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{x0 + span / 2}" y="{ty + chh / 2 + 5}" font-size="11" '
+        f'text-anchor="middle" fill="{ACCENT}">verifies all four in one forward pass</text>'  # noqa: F405
+    )
+    for i in range(4):
+        x = x0 + i * (cw + cgap)
+        body.append(
+            f'<path d="M {x + cw / 2} {dy + chh + 4} L {x + cw / 2} {ty - 8}" '
+            f'stroke="{RULE}" stroke-width="1"/>'  # noqa: F405
+        )
+
+    # Result row: accepted prefix, then the correction.
+    ry = 226
+    body += token_box(  # noqa: F405
+        24, ry, 104, chh, "result", fill="#ffffff", stroke=RULE_STRONG,  # noqa: F405
+        text_fill=MUTED, font_size=11,  # noqa: F405
+    )
+    for i, tok in enumerate(proposed):
+        x = x0 + i * (cw + cgap)
+        if verdict[i]:
+            body += token_box(  # noqa: F405
+                x, ry, cw, chh, tok, fill=ACCENT, stroke="none",  # noqa: F405
+                text_fill="#ffffff", weight=700,
+            )
+        else:
+            body += token_box(  # noqa: F405
+                x, ry, cw, chh, tok, fill="#f0efe9", stroke=RULE,  # noqa: F405
+                text_fill=RULE_STRONG,  # noqa: F405
+            )
+            body.append(
+                f'<line x1="{x + 8}" y1="{ry + 8}" x2="{x + cw - 8}" y2="{ry + chh - 8}" '
+                f'stroke="{BRICK}" stroke-width="1.4"/>'  # noqa: F405
+            )
+            # The target's correction chip, offset below.
+            body += token_box(  # noqa: F405
+                x, ry + chh + 8, cw, chh, correction, fill=AMBER, stroke="none",  # noqa: F405
+                text_fill="#ffffff", weight=700,
+            )
+            body.append(
+                f'<path d="M {x + cw / 2} {ry + chh} L {x + cw / 2} {ry + chh + 6}" '
+                f'stroke="{AMBER}" stroke-width="1.4" marker-end="url(#spa)"/>'  # noqa: F405
+            )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Three drafted tokens accepted plus one '  # noqa: F405
+        f"correction = 4 tokens from a single target pass, with identical output.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "sp"))  # noqa: F405
+    body.append(arrow_marker(AMBER, "spa"))  # noqa: F405
+    return write_svg(  # noqa: F405
+        "speculative-decoding.svg",
+        svg_doc(width, height, "speculative decoding: draft proposes, target verifies", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 15.5 — FlashAttention: keep tiles in fast SRAM, never build the matrix.
+# ---------------------------------------------------------------------------
+
+
+def fig_flash_attention_tiling() -> Path:  # noqa: F405
+    """Diagram: HBM holds Q/K/V while SRAM streams tiles and accumulates online."""
+    width, height = 680, 320
+    body: list[str] = [eyebrow(24, 28, "ATTENTION IS BOUND BY MEMORY TRAFFIC, NOT FLOPS")]  # noqa: F405
+
+    # --- HBM: large, slow store on the left. ---
+    hx, hy, hw, hh = 24, 52, 236, 224
+    body.append(
+        f'<rect x="{hx}" y="{hy}" width="{hw}" height="{hh}" rx="10" fill="#faf9f5" '
+        f'stroke="{RULE_STRONG}"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{hx + 14}" y="{hy + 22}" font-size="12" font-weight="700" fill="{INK}">'  # noqa: F405
+        f"HBM</text>"
+    )
+    body.append(
+        f'<text x="{hx + 14}" y="{hy + 38}" font-size="10" fill="{MUTED}">large, slow</text>'  # noqa: F405
+    )
+    for i, name in enumerate(["Q", "K", "V"]):
+        body += token_box(  # noqa: F405
+            hx + 18 + i * 70, hy + 54, 58, 32, name, fill=ACCENT_SOFT,  # noqa: F405
+            stroke=ACCENT, text_fill=ACCENT, font_size=13, weight=700,  # noqa: F405
+        )
+    # The n x n matrix, crossed out: never materialized.
+    mx, my, mw, mh = hx + 40, hy + 110, 156, 78
+    body.append(
+        f'<rect x="{mx}" y="{my}" width="{mw}" height="{mh}" rx="6" fill="#f0efe9" '
+        f'stroke="{BRICK}" stroke-dasharray="4 3"/>'  # noqa: F405
+    )
+    body.append(
+        f'<line x1="{mx}" y1="{my}" x2="{mx + mw}" y2="{my + mh}" stroke="{BRICK}" '  # noqa: F405
+        f'stroke-width="1.2"/>'
+    )
+    body.append(
+        f'<text x="{mx + mw / 2}" y="{my + mh / 2 - 2}" font-size="11" text-anchor="middle" '
+        f'fill="{BRICK}" font-weight="600">n x n scores</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{mx + mw / 2}" y="{my + mh / 2 + 14}" font-size="10" text-anchor="middle" '
+        f'fill="{BRICK}">never built</text>'  # noqa: F405
+    )
+
+    # --- SRAM: small, fast working set on the right. ---
+    sx, sy, sw, sh = 402, 78, 254, 150
+    body.append(
+        f'<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" rx="10" '
+        f'fill="{ACCENT_SOFT}" stroke="{ACCENT}"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{sx + 14}" y="{sy + 22}" font-size="12" font-weight="700" fill="{ACCENT}">'  # noqa: F405
+        f"SRAM</text>"
+    )
+    body.append(
+        f'<text x="{sx + 14}" y="{sy + 38}" font-size="10" fill="{ACCENT}">small, fast</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{sx + sw / 2}" y="{sy + 68}" font-size="11" text-anchor="middle" '
+        f'fill="{INK}">Q tile x K tile</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{sx + sw / 2}" y="{sy + 90}" font-size="11" text-anchor="middle" '
+        f'fill="{INK}">online softmax</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{sx + sw / 2}" y="{sy + 112}" font-size="11" text-anchor="middle" '
+        f'fill="{INK}">accumulate x V</text>'  # noqa: F405
+    )
+
+    # Streaming arrows: tiles loaded in, output written back.
+    body.append(
+        f'<path d="M {hx + hw + 4} {hy + 74} C 340 {hy + 74}, 360 {sy + 60}, {sx - 4} {sy + 60}" '
+        f'fill="none" stroke="{ACCENT}" stroke-width="1.6" marker-end="url(#fl)"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="330" y="{hy + 58}" font-size="9.5" text-anchor="middle" fill="{ACCENT}">'  # noqa: F405
+        f"load K, V tiles</text>"
+    )
+    body.append(
+        f'<path d="M {sx - 4} {sy + sh - 24} C 360 {sy + sh - 24}, 340 {my + mh + 30}, '
+        f'{hx + hw + 4} {my + mh + 30}" fill="none" stroke="{VIOLET}" stroke-width="1.6" '  # noqa: F405
+        f'marker-end="url(#flv)"/>'
+    )
+    body.append(
+        f'<text x="332" y="{my + mh + 22}" font-size="9.5" text-anchor="middle" fill="{VIOLET}">'  # noqa: F405
+        f"write output only</text>"
+    )
+    body.append(
+        f'<text x="{sx + sw / 2}" y="{sy + sh + 30}" font-size="10" text-anchor="middle" '
+        f'fill="{MUTED}">loop over tiles; backward recomputes them</text>'  # noqa: F405
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Exact attention, same FLOPs — the win is not '  # noqa: F405
+        f"touching HBM with an n x n matrix.</text>"
+    )
+    body.append(arrow_marker(ACCENT, "fl"))  # noqa: F405
+    body.append(arrow_marker(VIOLET, "flv"))  # noqa: F405
+    return write_svg(  # noqa: F405
+        "flash-attention-tiling.svg",
+        svg_doc(width, height, "FlashAttention tiling across the memory hierarchy", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: quantization.
+# ---------------------------------------------------------------------------
+def fig_quant_grid() -> Path:  # noqa: F405
+    """Diagram: continuous weights rounded to the nearest rung of an integer grid."""
+    width, height = 680, 300
+    body: list[str] = [eyebrow(30, 30, "MAPPING FLOATS TO A SMALL INTEGER GRID")]
+
+    axis_y = 186
+    x_lo, x_hi = 74, 606
+    span = x_hi - x_lo
+    w_lo, w_hi = -0.6, 0.6
+    levels = 8  # 3-bit for legibility; 4-bit is 16 rungs.
+
+    def x_of(v: float) -> float:
+        return x_lo + (v - w_lo) / (w_hi - w_lo) * span
+
+    # The integer ladder: evenly spaced rungs, each a representable value.
+    tick_vals = [w_lo + k * (w_hi - w_lo) / (levels - 1) for k in range(levels)]
+    body.append(
+        f'<line x1="{x_lo - 8}" y1="{axis_y}" x2="{x_hi + 8}" y2="{axis_y}" '
+        f'stroke="{RULE_STRONG}" stroke-width="1.5"/>'
+    )
+    zero_point = levels // 2  # The rung that stands in for weight 0.
+    for k, v in enumerate(tick_vals):
+        x = x_of(v)
+        is_zero = k == zero_point
+        body.append(
+            f'<line x1="{x:.1f}" y1="{axis_y - 8}" x2="{x:.1f}" y2="{axis_y + 8}" '
+            f'stroke="{ACCENT if is_zero else INK_SOFT}" stroke-width="{2.2 if is_zero else 1.2}"/>'
+        )
+        body.append(
+            f'<text x="{x:.1f}" y="{axis_y + 24}" font-size="10.5" text-anchor="middle" '
+            f'fill="{INK_SOFT}" font-variant="tabular-nums">{k}</text>'
+        )
+    body.append(
+        f'<text x="{x_of(tick_vals[zero_point]):.1f}" y="{axis_y + 40}" font-size="9.5" '
+        f'text-anchor="middle" fill="{ACCENT}">zero-point</text>'
+    )
+    body.append(
+        f'<text x="{x_lo - 8}" y="{axis_y - 14}" font-size="10" fill="{MUTED}">int codes</text>'
+    )
+
+    # The continuous weights, each snapping down to its nearest rung.
+    floats = [-0.55, -0.36, -0.19, -0.03, 0.10, 0.22, 0.35, 0.47, 0.585]
+    dot_y = 96
+    for v in floats:
+        xf = x_of(v)
+        nearest = min(tick_vals, key=lambda t: abs(t - v))
+        xt = x_of(nearest)
+        body.append(
+            f'<line x1="{xf:.1f}" y1="{dot_y + 6}" x2="{xt:.1f}" y2="{axis_y - 9}" '
+            f'stroke="{AMBER}" stroke-width="1" opacity="0.6" stroke-dasharray="2 2"/>'
+        )
+        body.append(f'<circle cx="{xf:.1f}" cy="{dot_y}" r="4.2" fill="{AMBER}"/>')
+    body.append(
+        f'<text x="{x_lo - 8}" y="{dot_y - 14}" font-size="10" fill="{MUTED}">'
+        f"true weights (continuous)</text>"
+    )
+
+    # The scale: the spacing between two rungs.
+    s_a, s_b = x_of(tick_vals[5]), x_of(tick_vals[6])
+    br_y = axis_y + 52
+    body.append(
+        f'<path d="M {s_a:.1f} {br_y} L {s_a:.1f} {br_y + 6} L {s_b:.1f} {br_y + 6} '
+        f'L {s_b:.1f} {br_y}" fill="none" stroke="{VIOLET}" stroke-width="1.2"/>'
+    )
+    body.append(
+        f'<text x="{(s_a + s_b) / 2:.1f}" y="{br_y + 22}" font-size="11" '
+        f'text-anchor="middle" fill="{VIOLET}" font-weight="600">scale s</text>'
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="11" text-anchor="middle" '
+        f'fill="{INK_SOFT}" font-family="{MONO}">'
+        f"code = round((w &#8722; zero) / s)&#160;&#160;&#8226;&#160;&#160;w &#8776; s &#183; code + zero</text>"
+    )
+    return write_svg(  # noqa: F405
+        "quant-grid.svg",
+        svg_doc(width, height, "weights rounded to an integer grid", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 16.2 — where a scale is shared: per-tensor, per-channel, group-wise.
+# ---------------------------------------------------------------------------
+
+
+def fig_quant_granularity() -> Path:  # noqa: F405
+    """Diagram: three weight tiles colored by which cells share one scale."""
+    width, height = 680, 274
+    rows, cols = 6, 6
+    cell = 22
+    gap = 3
+    grid_w = cols * (cell + gap) - gap
+    panel_gap = (width - 3 * grid_w) / 4
+    top = 66
+
+    body: list[str] = [eyebrow(30, 30, "HOW COARSE IS THE SCALE?")]
+
+    # A small palette of distinct shades so "same color = shares one scale".
+    shades = [ACCENT, VIOLET, AMBER, BRICK, "#3f7d54", "#8a6d3b"]
+
+    def group_color(mode: str, r: int, c: int) -> str:
+        if mode == "tensor":
+            return ACCENT
+        if mode == "channel":
+            return shades[r % len(shades)]
+        # Group-wise: three columns per group, so two scales per row.
+        return shades[(r * 2 + (c // 3)) % len(shades)]
+
+    panels = [
+        ("tensor", "Per-tensor", "one scale for the\nwhole matrix"),
+        ("channel", "Per-channel", "one scale per row\n(output channel)"),
+        ("group", "Group-wise", "one scale per block\nof ~128 weights"),
+    ]
+    for p, (mode, title, sub) in enumerate(panels):
+        x0 = panel_gap + p * (grid_w + panel_gap)
+        body.append(
+            f'<text x="{x0 + grid_w / 2:.1f}" y="{top - 22}" font-size="12" '
+            f'text-anchor="middle" font-weight="700" fill="{INK}">{title}</text>'
+        )
+        for r in range(rows):
+            for c in range(cols):
+                x = x0 + c * (cell + gap)
+                y = top + r * (cell + gap)
+                color = group_color(mode, r, c)
+                body.append(
+                    f'<rect x="{x:.1f}" y="{y:.1f}" width="{cell}" height="{cell}" '
+                    f'rx="3" fill="{color}" opacity="0.82"/>'
+                )
+        sub_y = top + rows * (cell + gap) + 14
+        for j, line in enumerate(sub.split("\n")):
+            body.append(
+                f'<text x="{x0 + grid_w / 2:.1f}" y="{sub_y + j * 14}" font-size="10.5" '
+                f'text-anchor="middle" fill="{MUTED}">{line}</text>'
+            )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 8}" font-size="10.5" text-anchor="middle" '
+        f'fill="{INK_SOFT}" font-style="italic">Same color shares one scale. '
+        f"Finer granularity fits outliers better, at a few extra bits of overhead.</text>"
+    )
+    return write_svg(  # noqa: F405
+        "quant-granularity.svg",
+        svg_doc(width, height, "per-tensor, per-channel, and group-wise scales", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 16.3 — the activation-outlier problem.
+# ---------------------------------------------------------------------------
+
+
+def fig_outlier_features() -> Path:  # noqa: F405
+    """Plot: a few activation channels dwarf the rest, wrecking a shared scale."""
+    import random
+
+    style_plot()  # noqa: F405
+    fig, ax = plt.subplots(figsize=(7.0, 3.4))
+
+    rng = random.Random(7)
+    n = 56
+    mags = [abs(rng.gauss(0, 1.0)) + 0.4 for _ in range(n)]
+    outliers = {9: 58.0, 23: 71.0, 41: 44.0}  # A handful of blown-up channels.
+    for idx, val in outliers.items():
+        mags[idx] = val
+    colors = [BRICK if i in outliers else ACCENT for i in range(n)]
+
+    ax.bar(range(n), mags, color=colors, width=0.85, edgecolor="none")
+    ax.set_yscale("log")
+    ax.set_ylim(0.2, 120)
+
+    ax.annotate(
+        "a few channels are 20–100×\nlarger than all the rest",
+        xy=(23, 71),
+        xytext=(28, 90),
+        fontsize=8,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+    ax.text(
+        2,
+        1.4,
+        "the bulk of the channels",
+        fontsize=8,
+        color=ACCENT,
+    )
+
+    ax.set_xlabel("hidden dimension (activation channel)")
+    ax.set_ylabel("max |activation| (log scale)")
+    ax.set_title(
+        "One shared scale is set by the outliers, and everything else collapses",
+        loc="left",
+    )
+    ax.set_xticks([])
+    ax.grid(axis="y", alpha=0.5)
+    ax.set_axisbelow(True)
+    return save_plot(fig, "outlier-features.svg")  # noqa: F405
+
+
+# ---------------------------------------------------------------------------
+# Figure 16.4 — the three formats you'll actually meet.
+# ---------------------------------------------------------------------------
+
+
+def fig_quant_formats() -> Path:  # noqa: F405
+    """Diagram: GGUF, bitsandbytes, and MLX, and the job each one is for."""
+    width, height = 700, 292
+    body: list[str] = [eyebrow(30, 30, "WHICH FORMAT DO I REACH FOR?")]
+
+    cards = [
+        (
+            "GGUF / llama.cpp",
+            ACCENT,
+            "run a model locally",
+            [
+                "CPU + GPU, Metal on Macs",
+                "K-quants: mixed bits,",
+                "more where it hurts",
+                "the local default (App. A)",
+            ],
+        ),
+        (
+            "bitsandbytes",
+            VIOLET,
+            "train in PyTorch / HF",
+            [
+                "NF4 + 8-bit, in Python",
+                "the engine behind QLoRA",
+                "load a 4-bit base and",
+                "fine-tune adapters (Ch. 13)",
+            ],
+        ),
+        (
+            "MLX",
+            AMBER,
+            "build on Apple silicon",
+            [
+                "unified-memory native",
+                "run and fine-tune on a Mac",
+                "Metal kernels, tuned",
+                "for exactly that chip",
+            ],
+        ),
+    ]
+
+    card_gap = 22
+    card_w = (width - 60 - 2 * card_gap) / 3
+    x0 = 30
+    top = 60
+    card_h = 176
+    for i, (name, color, tag, lines) in enumerate(cards):
+        x = x0 + i * (card_w + card_gap)
+        body.append(
+            f'<rect x="{x:.1f}" y="{top}" width="{card_w:.1f}" height="{card_h}" rx="9" '
+            f'fill="#ffffff" stroke="{RULE_STRONG}"/>'
+        )
+        body.append(
+            f'<rect x="{x:.1f}" y="{top}" width="{card_w:.1f}" height="5" rx="2.5" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{x + 16:.1f}" y="{top + 32}" font-size="13.5" font-weight="700" '
+            f'fill="{INK}">{name}</text>'
+        )
+        body.append(
+            f'<text x="{x + 16:.1f}" y="{top + 52}" font-size="11" font-style="italic" '
+            f'fill="{color}">{tag}</text>'
+        )
+        for j, line in enumerate(lines):
+            body.append(
+                f'<text x="{x + 16:.1f}" y="{top + 80 + j * 21}" font-size="11" '
+                f'fill="{INK_SOFT}">{line}</text>'
+            )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">All three carry the same idea in different '
+        f"wrappers: fewer bits per weight, packaged for a runtime.</text>"
+    )
+    return write_svg(  # noqa: F405
+        "quant-formats.svg",
+        svg_doc(width, height, "the GGUF, bitsandbytes, and MLX formats", body),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 16.5 — the accuracy cliff below four bits.
+# ---------------------------------------------------------------------------
+
+
+def fig_accuracy_cliff() -> Path:  # noqa: F405
+    """Plot: quality holds down to ~4 bits, then falls off a cliff."""
+    style_plot()  # noqa: F405
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+
+    bits = [16, 8, 6, 5, 4, 3, 2]
+    quality = [100.0, 99.7, 99.3, 98.7, 97.8, 90.5, 61.0]  # Illustrative, % retained.
+
+    ax.plot(bits, quality, color=ACCENT, linewidth=2.2, marker="o", markersize=5)
+    ax.invert_xaxis()  # More bits on the left; walk down toward the cliff.
+
+    # The 4-bit sweet spot and the sub-3-bit cliff.
+    ax.axvspan(4.5, 3.5, color=ACCENT_SOFT, alpha=0.8)
+    ax.text(4.0, 92, "4-bit:\nusual sweet spot", fontsize=8.5, color=ACCENT, ha="center")
+    ax.axvspan(3.5, 1.5, color=BRICK, alpha=0.06)
+    ax.annotate(
+        "the cliff: below ~3 bits,\nquality falls fast",
+        xy=(2, 61),
+        xytext=(3.1, 68),
+        fontsize=8.5,
+        color=BRICK,
+        arrowprops={"arrowstyle": "-", "color": BRICK, "linewidth": 0.8},
+    )
+
+    ax.set_xlabel("bits per weight")
+    ax.set_ylabel("quality retained vs 16-bit (%)")
+    ax.set_title("Weight-only quantization is nearly free down to about four bits", loc="left")
+    ax.set_ylim(50, 104)
+    ax.set_xticks(bits)
+    ax.set_xticklabels([str(b) for b in bits])
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    return save_plot(fig, "accuracy-cliff.svg")  # noqa: F405
+
+
+# ---------------------------------------------------------------------------
+# Chapter figures: serving-systems.
+# ---------------------------------------------------------------------------
+def fig_latency_metrics() -> Path:  # noqa: F405
+    """Diagram: prefill sets TTFT; each decode step sets the inter-token latency."""
+    width, height = 680, 270
+    body: list[str] = [eyebrow(28, 30, "ONE REQUEST, TWO CLOCKS")]  # noqa: F405
+
+    axis_y = 176
+    x0 = 60
+    arrive_x = x0
+    # Prefill is one compute-heavy block; first token pops out at its end.
+    prefill_w = 150
+    first_tok_x = arrive_x + prefill_w
+    # Decode emits tokens at a steady cadence after the first.
+    step = 58
+    n_decode = 7
+
+    # The baseline time axis.
+    axis_end = first_tok_x + n_decode * step + 24
+    body.append(
+        f'<path d="M {x0} {axis_y} L {axis_end} {axis_y}" stroke="{RULE_STRONG}" '  # noqa: F405
+        f'stroke-width="1.4" marker-end="url(#t1)"/>'
+    )
+    body.append(
+        f'<text x="{axis_end}" y="{axis_y + 22}" font-size="10.5" text-anchor="end" '
+        f'fill="{MUTED}">wall-clock time &#8594;</text>'  # noqa: F405
+    )
+
+    # Arrival marker.
+    body.append(
+        f'<line x1="{arrive_x}" y1="{axis_y - 62}" x2="{arrive_x}" y2="{axis_y + 6}" '
+        f'stroke="{INK_SOFT}" stroke-width="1"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{arrive_x}" y="{axis_y - 68}" font-size="10.5" text-anchor="middle" '
+        f'fill="{INK_SOFT}">request arrives</text>'  # noqa: F405
+    )
+
+    # The prefill block: reads the whole prompt in one shot.
+    body.append(
+        f'<rect x="{arrive_x}" y="{axis_y - 40}" width="{prefill_w}" height="34" rx="6" '
+        f'fill="{ACCENT}" stroke="none"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{arrive_x + prefill_w / 2}" y="{axis_y - 18}" font-size="12" '
+        f'font-weight="700" text-anchor="middle" fill="#ffffff">prefill the prompt</text>'
+    )
+
+    # Decode tokens: evenly spaced chips after the first token.
+    for i in range(n_decode):
+        cx = first_tok_x + i * step
+        fill = AMBER if i == 0 else ACCENT_SOFT  # noqa: F405
+        stroke = AMBER if i == 0 else ACCENT  # noqa: F405
+        tf = "#ffffff" if i == 0 else ACCENT  # noqa: F405
+        body.append(
+            f'<rect x="{cx}" y="{axis_y - 39}" width="34" height="32" rx="6" '
+            f'fill="{fill}" stroke="{stroke}"/>'
+        )
+        body.append(
+            f'<text x="{cx + 17}" y="{axis_y - 18}" font-size="11" font-weight="700" '
+            f'text-anchor="middle" fill="{tf}">t{i + 1}</text>'
+        )
+
+    # TTFT bracket: arrival to first token.
+    ttft_y = axis_y + 26
+    body.append(
+        f'<path d="M {arrive_x} {ttft_y} L {first_tok_x + 17} {ttft_y}" '
+        f'stroke="{VIOLET}" stroke-width="1.6" marker-start="url(#t2)" '  # noqa: F405
+        f'marker-end="url(#t2)"/>'
+    )
+    body.append(
+        f'<text x="{(arrive_x + first_tok_x) / 2}" y="{ttft_y + 18}" font-size="11" '
+        f'font-weight="700" text-anchor="middle" fill="{VIOLET}">TTFT</text>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{(arrive_x + first_tok_x) / 2}" y="{ttft_y + 32}" font-size="9.5" '
+        f'text-anchor="middle" fill="{MUTED}">set by prefill</text>'  # noqa: F405
+    )
+
+    # TPOT bracket: between two adjacent decode tokens.
+    a = first_tok_x + 2 * step + 17
+    b = first_tok_x + 3 * step + 17
+    tpot_y = axis_y - 54
+    body.append(
+        f'<path d="M {a} {tpot_y} L {b} {tpot_y}" stroke="{AMBER}" '  # noqa: F405
+        f'stroke-width="1.6" marker-start="url(#t3)" marker-end="url(#t3)"/>'
+    )
+    body.append(
+        f'<text x="{(a + b) / 2}" y="{tpot_y - 6}" font-size="11" font-weight="700" '
+        f'text-anchor="middle" fill="{AMBER}">TPOT</text>'  # noqa: F405
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">A user feels two delays: the wait for the '  # noqa: F405
+        f"first word, then the pace of the rest. They have different cures.</text>"
+    )
+    body.append(arrow_marker(RULE_STRONG, "t1"))  # noqa: F405
+    body.append(
+        f'<defs><marker id="t2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+        f'markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" '
+        f'fill="{VIOLET}"/></marker></defs>'  # noqa: F405
+    )
+    body.append(
+        f'<defs><marker id="t3" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" '
+        f'markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" '
+        f'fill="{AMBER}"/></marker></defs>'  # noqa: F405
+    )
+    return write_svg(  # noqa: F405
+        "latency-metrics.svg",
+        svg_doc(width, height, "TTFT set by prefill, TPOT set by decode", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 17.2 — the serving engines, by their signature idea.
+# ---------------------------------------------------------------------------
+
+
+def fig_serving_engines() -> Path:  # noqa: F405
+    """Diagram: four engines, each labelled by what differentiates it."""
+    width, height = 680, 300
+    body: list[str] = [eyebrow(24, 30, "FOUR ENGINES, FOUR SIGNATURES")]  # noqa: F405
+
+    cards = [
+        (
+            "vLLM",
+            "PagedAttention",
+            "paged KV memory, continuous\nbatching; the open default",
+            ACCENT,  # noqa: F405
+        ),
+        (
+            "TensorRT-LLM",
+            "compiled kernels",
+            "ahead-of-time engine build,\nfused ops; peak on NVIDIA",
+            BRICK,  # noqa: F405
+        ),
+        (
+            "SGLang",
+            "RadixAttention",
+            "prefix-cache tree, fast\nstructured output; agents",
+            VIOLET,  # noqa: F405
+        ),
+        (
+            "TGI",
+            "production glue",
+            "streaming, metrics, safe\nrollout; the HF ecosystem",
+            AMBER,  # noqa: F405
+        ),
+    ]
+
+    cw, ch, gap = 150, 168, 24
+    x0 = (width - (4 * cw + 3 * gap)) / 2
+    y0 = 58
+    for i, (name, sig, detail, color) in enumerate(cards):
+        x = x0 + i * (cw + gap)
+        body.append(
+            f'<rect x="{x}" y="{y0}" width="{cw}" height="{ch}" rx="10" fill="#ffffff" '
+            f'stroke="{RULE_STRONG}"/>'  # noqa: F405
+        )
+        body.append(
+            f'<rect x="{x}" y="{y0}" width="{cw}" height="6" rx="3" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{x + cw / 2}" y="{y0 + 34}" font-size="14" font-weight="700" '
+            f'text-anchor="middle" fill="{INK}">{name}</text>'  # noqa: F405
+        )
+        body.append(
+            f'<rect x="{x + 16}" y="{y0 + 46}" width="{cw - 32}" height="24" rx="12" '
+            f'fill="{color}" opacity="0.14"/>'
+        )
+        body.append(
+            f'<text x="{x + cw / 2}" y="{y0 + 62}" font-size="11" font-weight="700" '
+            f'text-anchor="middle" fill="{color}">{sig}</text>'
+        )
+        for j, line in enumerate(detail.split("\n")):
+            body.append(
+                f'<text x="{x + cw / 2}" y="{y0 + 92 + j * 15}" font-size="10.5" '
+                f'text-anchor="middle" fill="{MUTED}">{line}</text>'  # noqa: F405
+            )
+
+    # A shared floor: they all stand on the same two ideas from Chapter 15.
+    floor_y = y0 + ch + 20
+    body.append(
+        f'<rect x="{x0}" y="{floor_y}" width="{4 * cw + 3 * gap}" height="28" rx="8" '
+        f'fill="{ACCENT_SOFT}" stroke="{ACCENT}"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{width / 2}" y="{floor_y + 18}" font-size="10.5" text-anchor="middle" '
+        f'fill="{ACCENT}" font-weight="600">shared foundation: paged KV cache '  # noqa: F405
+        f"+ FlashAttention kernels (Chapter 15)</text>"
+    )
+    return write_svg(  # noqa: F405
+        "serving-engines.svg",
+        svg_doc(width, height, "vLLM, TensorRT-LLM, SGLang, and TGI compared", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 17.3 — static batching wastes the freed slot; continuous refills it.
+# ---------------------------------------------------------------------------
+
+
+def fig_continuous_batching() -> Path:  # noqa: F405
+    """Diagram: two schedules over iteration time, one idle, one packed."""
+    width, height = 680, 380
+    body: list[str] = [eyebrow(24, 28, "WHERE THE GPU IDLES")]  # noqa: F405
+
+    lane_h = 22
+    lane_gap = 8
+    left = 150
+    cell = 30  # Pixels per iteration.
+    n_iter = 14
+
+    def timeline(y0: int, title: str, jobs, note: str):
+        parts = [
+            f'<text x="24" y="{y0 - 12}" font-size="12" font-weight="700" '
+            f'fill="{INK}">{title}</text>'  # noqa: F405
+        ]
+        # Iteration grid.
+        grid_bottom = y0 + 4 * (lane_h + lane_gap)
+        for k in range(n_iter + 1):
+            gx = left + k * cell
+            parts.append(
+                f'<line x1="{gx}" y1="{y0}" x2="{gx}" y2="{grid_bottom - lane_gap}" '
+                f'stroke="{RULE}" stroke-width="0.7"/>'  # noqa: F405
+            )
+        for lane, (label, segs) in enumerate(jobs):
+            ly = y0 + lane * (lane_h + lane_gap)
+            parts.append(
+                f'<text x="{left - 12}" y="{ly + lane_h / 2 + 4}" font-size="10.5" '
+                f'text-anchor="end" fill="{MUTED}">{label}</text>'  # noqa: F405
+            )
+            for start, length, color, running in segs:
+                sx = left + start * cell
+                sw = length * cell
+                if running:
+                    parts.append(
+                        f'<rect x="{sx}" y="{ly}" width="{sw - 3}" height="{lane_h}" '
+                        f'rx="4" fill="{color}" opacity="0.85"/>'
+                    )
+                else:
+                    # An idle, reserved slot: hatched grey, no work done.
+                    parts.append(
+                        f'<rect x="{sx}" y="{ly}" width="{sw - 3}" height="{lane_h}" '
+                        f'rx="4" fill="#efeee8" stroke="{RULE_STRONG}" '  # noqa: F405
+                        f'stroke-dasharray="3 3"/>'
+                    )
+        parts.append(
+            f'<text x="{left}" y="{grid_bottom + 14}" font-size="10" '
+            f'fill="{MUTED}" font-style="italic">{note}</text>'  # noqa: F405
+        )
+        return parts
+
+    # Static batching: four requests start together; short ones finish early but
+    # their slot sits idle (reserved) until the whole batch drains.
+    static_jobs = [
+        ("req A", [(0, 5, ACCENT, True), (5, 9, "#efeee8", False)]),  # noqa: F405
+        ("req B", [(0, 14, VIOLET, True)]),  # noqa: F405
+        ("req C", [(0, 3, AMBER, True), (3, 11, "#efeee8", False)]),  # noqa: F405
+        ("req D", [(0, 8, BRICK, True), (8, 6, "#efeee8", False)]),  # noqa: F405
+    ]
+    body += timeline(
+        64,
+        "Static batching",
+        static_jobs,
+        "finished requests hold their slot idle until the slowest one in the batch ends",
+    )
+
+    # Continuous batching: freed slots are refilled at the next iteration.
+    cont_jobs = [
+        (
+            "slot 1",
+            [
+                (0, 5, ACCENT, True),  # noqa: F405
+                (5, 6, VIOLET, True),  # noqa: F405
+                (11, 3, AMBER, True),  # noqa: F405
+            ],
+        ),
+        (
+            "slot 2",
+            [
+                (0, 3, BRICK, True),  # noqa: F405
+                (3, 7, ACCENT, True),  # noqa: F405
+                (10, 4, VIOLET, True),  # noqa: F405
+            ],
+        ),
+        (
+            "slot 3",
+            [
+                (0, 8, AMBER, True),  # noqa: F405
+                (8, 6, BRICK, True),  # noqa: F405
+            ],
+        ),
+        (
+            "slot 4",
+            [
+                (0, 4, VIOLET, True),  # noqa: F405
+                (4, 5, AMBER, True),  # noqa: F405
+                (9, 5, ACCENT, True),  # noqa: F405
+            ],
+        ),
+    ]
+    body += timeline(
+        214,
+        "Continuous (in-flight) batching",
+        cont_jobs,
+        "a new request joins at the very next iteration, so the GPU never idles on a freed slot",
+    )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 12}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">Same four colors of work, far less white '  # noqa: F405
+        f"space: keeping the batch full is the whole game.</text>"
+    )
+    return write_svg(  # noqa: F405
+        "continuous-batching.svg",
+        svg_doc(width, height, "static versus continuous batching schedules", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 17.4 — a shared system prompt, computed once, reused by many.
+# ---------------------------------------------------------------------------
+
+
+def fig_prefix_cache() -> Path:  # noqa: F405
+    """Diagram: a radix tree of KV cache with one shared prompt at the root."""
+    width, height = 620, 300
+    body: list[str] = [eyebrow(24, 30, "PREFIX CACHE AS A SHARED TREE")]  # noqa: F405
+
+    # Root: the system prompt every request pays for only once.
+    root_x, root_y, root_w, root_h = 210, 58, 200, 44
+    body.append(
+        f'<rect x="{root_x}" y="{root_y}" width="{root_w}" height="{root_h}" rx="8" '
+        f'fill="{ACCENT}" stroke="none"/>'  # noqa: F405
+    )
+    body.append(
+        f'<text x="{root_x + root_w / 2}" y="{root_y + 20}" font-size="12" '
+        f'font-weight="700" text-anchor="middle" fill="#ffffff">shared system prompt</text>'
+    )
+    body.append(
+        f'<text x="{root_x + root_w / 2}" y="{root_y + 36}" font-size="10" '
+        f'text-anchor="middle" fill="{ACCENT_SOFT}">KV computed once, cached</text>'  # noqa: F405
+    )
+
+    # Second level: a few conversations that share the prefix, then diverge.
+    branches = [
+        ("user A turn", 70, VIOLET),  # noqa: F405
+        ("user B turn", 250, AMBER),  # noqa: F405
+        ("user C turn", 430, BRICK),  # noqa: F405
+    ]
+    bw, bh, by = 150, 40, 168
+    root_cx = root_x + root_w / 2
+    for label, bx, color in branches:
+        body.append(
+            f'<path d="M {root_cx} {root_y + root_h} C {root_cx} {by - 24}, '
+            f'{bx + bw / 2} {root_y + root_h + 20}, {bx + bw / 2} {by}" fill="none" '
+            f'stroke="{RULE_STRONG}" stroke-width="1.5"/>'  # noqa: F405
+        )
+        body.append(
+            f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="8" fill="#ffffff" '
+            f'stroke="{color}"/>'
+        )
+        body.append(
+            f'<rect x="{bx}" y="{by}" width="4" height="{bh}" rx="2" fill="{color}"/>'
+        )
+        body.append(
+            f'<text x="{bx + bw / 2 + 2}" y="{by + 18}" font-size="11" font-weight="700" '
+            f'text-anchor="middle" fill="{INK}">{label}</text>'  # noqa: F405
+        )
+        body.append(
+            f'<text x="{bx + bw / 2 + 2}" y="{by + 33}" font-size="9.5" '
+            f'text-anchor="middle" fill="{MUTED}">only this part is new</text>'  # noqa: F405
+        )
+
+    body.append(
+        f'<text x="{width / 2}" y="{height - 26}" font-size="10.5" text-anchor="middle" '
+        f'fill="{INK_SOFT}">The long common prefix is prefilled a single time; each '  # noqa: F405
+        f"request pays only for its own suffix.</text>"
+    )
+    body.append(
+        f'<text x="{width / 2}" y="{height - 10}" font-size="10.5" text-anchor="middle" '
+        f'fill="{MUTED}" font-style="italic">This is why a stable system prompt is nearly '  # noqa: F405
+        f"free after the first request that warms it.</text>"
+    )
+    return write_svg(  # noqa: F405
+        "prefix-cache.svg",
+        svg_doc(width, height, "a shared prefix cached once at the root of a tree", body),  # noqa: F405
+    )
+
+
+# ---------------------------------------------------------------------------
+# Figure 17.5 — batching trades per-user latency for throughput and cost.
+# ---------------------------------------------------------------------------
+
+
+def fig_throughput_frontier() -> Path:  # noqa: F405
+    """Plot: the throughput-latency frontier, annotated with cost per token."""
+    style_plot()  # noqa: F405
+    fig, ax = plt.subplots(figsize=(7.0, 3.8))  # noqa: F405
+
+    # A saturating throughput curve in batch size, with latency rising as the
+    # batch grows. Illustrative numbers, chosen to show the knee.
+    batches = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    # System throughput (tokens/sec) saturates as the GPU becomes compute-bound.
+    throughput = [95, 185, 350, 640, 1100, 1750, 2500, 3050, 3300]
+    # Per-user latency (ms per output token) creeps up, then climbs steeply.
+    latency = [11, 12, 13, 15, 19, 26, 40, 72, 140]
+
+    ax.plot(
+        throughput,
+        latency,
+        color=ACCENT,  # noqa: F405
+        linewidth=2.2,
+        marker="o",
+        markersize=5,
+        zorder=3,
+    )
+    for b, tp, lat in zip(batches, throughput, latency):
+        ax.annotate(
+            f"b={b}",
+            xy=(tp, lat),
+            xytext=(tp + 40, lat - 5),
+            fontsize=7.5,
+            color=MUTED,  # noqa: F405
+        )
+
+    # An SLO ceiling on per-token latency: everything above it is off the menu.
+    slo = 50
+    ax.axhspan(slo, 160, color=BRICK, alpha=0.06)  # noqa: F405
+    ax.axhline(slo, color=BRICK, linewidth=0.9, linestyle=(0, (4, 3)))  # noqa: F405
+    ax.text(
+        160,
+        slo + 6,
+        "latency SLO ceiling",
+        fontsize=8,
+        color=BRICK,  # noqa: F405
+        ha="left",
+    )
+
+    # The operating point: the largest batch that still meets the SLO.
+    ax.scatter([2500], [40], s=70, color=AMBER, zorder=5)  # noqa: F405
+    ax.annotate(
+        "pick the biggest batch\nthe SLO allows: most tokens\nper GPU, lowest cost each",
+        xy=(2500, 40),
+        xytext=(1150, 92),
+        fontsize=8,
+        color=AMBER,  # noqa: F405
+        arrowprops={"arrowstyle": "-", "color": AMBER, "linewidth": 0.8},  # noqa: F405
+    )
+
+    ax.set_xlabel("system throughput (tokens/sec) — cost per token falls as this rises")
+    ax.set_ylabel("per-user latency (ms/token)")
+    ax.set_title(
+        "Batching buys throughput by spending latency — the frontier you tune on",
+        loc="left",
+    )
+    ax.set_xlim(0, 3600)
+    ax.set_ylim(0, 155)
+    ax.grid(alpha=0.5)
+    ax.set_axisbelow(True)
+    return save_plot(fig, "throughput-frontier.svg")  # noqa: F405
+
+
 FIGURES = (
     fig_lifecycle,
     fig_attention_lookup,
@@ -5118,6 +6736,25 @@ FIGURES = (
     fig_qlora_stack,
     fig_lora_rank,
     fig_adapter_serving,
+    fig_beam_degeneration,
+    fig_sampling_knobs,
+    fig_min_p,
+    fig_constrained_decoding,
+    fig_prefill_decode_roofline,
+    fig_kv_cache_growth,
+    fig_paged_attention,
+    fig_speculative_decoding,
+    fig_flash_attention_tiling,
+    fig_quant_grid,
+    fig_quant_granularity,
+    fig_outlier_features,
+    fig_quant_formats,
+    fig_accuracy_cliff,
+    fig_latency_metrics,
+    fig_serving_engines,
+    fig_continuous_batching,
+    fig_prefix_cache,
+    fig_throughput_frontier,
     fig_cover,
     fig_icon,
     fig_touch_icon,
